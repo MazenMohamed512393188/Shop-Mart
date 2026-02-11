@@ -2,13 +2,13 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useLayoutEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function DarkModeToggle() {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     setMounted(true);
   }, []);
 
@@ -29,7 +29,7 @@ export default function DarkModeToggle() {
       <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-foreground" />
       <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-foreground" />
       
-      <span className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+      <span className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-nowrap whitespace-nowrap">
         {theme === "dark" ? "Light mode" : "Dark mode"}
       </span>
     </button>

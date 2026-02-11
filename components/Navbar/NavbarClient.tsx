@@ -21,7 +21,7 @@ interface NavbarClientProps {
 }
 
 export default function NavbarClient({ hasSession, cartItemsCount }: NavbarClientProps) {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
 
   // Prevent hydration mismatch

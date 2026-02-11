@@ -22,7 +22,6 @@ export async function getLoggedUserAction() {
         token: session.token as string,
         "Content-Type": "application/json",
       },
-      cache: "no-store", // Always fetch fresh data
     });
 
     const data: GetUserResponse = await response.json();
