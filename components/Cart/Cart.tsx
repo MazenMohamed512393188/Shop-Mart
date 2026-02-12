@@ -125,7 +125,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     }
 
     if (!cart?.data._id) {
-      toast.error("Cart ID not found");
+      toast.error("Cart is empty");
       return;
     }
 
@@ -151,7 +151,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
       }
     } catch (error: any) {
       console.error("Checkout error:", error);
-      toast.error(error.message || "An error occurred during checkout");
+      toast.error( "An error occurred during checkout");
     } finally {
       setIsCheckoutLoading(false);
     }
@@ -168,7 +168,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     }
 
     if (!cart?.data._id) {
-      toast.error("Cart ID not found");
+      toast.error("Cart is empty");
       return;
     }
 
@@ -185,7 +185,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
       }
     } catch (error: any) {
       console.error("Cash payment error:", error);
-      toast.error(error.message || "An error occurred during cash payment");
+      toast.error("An error occurred during cash payment");
     } finally {
       setIsCashLoading(false);
     }
@@ -193,7 +193,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
 
   if (!cart) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
+      <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
         <div className="container mx-auto px-4 py-24">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -222,7 +222,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
+    <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
       {/* Header */}
       <div className="container mx-auto px-4 py-12">
         <motion.div
@@ -266,8 +266,8 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
 
                       <div className="flex gap-4">
                         {/* Product Image */}
-                        <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-secondary to-accent/10 flex-shrink-0">
-                          <div className="absolute inset-0 bg-gradient-to-t from-background/30 via-transparent to-transparent z-10" />
+                        <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-linear-to-br from-secondary to-accent/10 shrink-0">
+                          <div className="absolute inset-0 bg-linear-to-t from-background/30 via-transparent to-transparent z-10" />
                           <Image
                             src={item.product.imageCover}
                             alt={item.product.title}
@@ -481,7 +481,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
                 <div className="space-y-4">
                   {benefits.map((benefit, index) => (
                     <div key={index} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                         {benefit.icon}
                       </div>
                       <div>
