@@ -78,7 +78,6 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
   const detailsInput = useRef<HTMLInputElement | null>(null);
   const cityInput = useRef<HTMLInputElement | null>(null);
   const phoneInput = useRef<HTMLInputElement | null>(null);
-
   const [cart, setCart] = useState<CartRes | null>(cartData || null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
@@ -206,7 +205,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
             </div>
             <h1 className="text-3xl font-bold mb-4">Your Cart is Empty</h1>
             <p className="text-muted-foreground dark:text-slate-300 mb-8">
-              Looks like you haven't added any items to your cart yet.
+              Looks like you haven&apos;t added any items to your cart yet.
             </p>
             <Link
               href="/products"
