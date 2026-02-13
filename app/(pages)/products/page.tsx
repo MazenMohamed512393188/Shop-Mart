@@ -28,14 +28,6 @@ async function ProductsList() {
       {data.data.map((product) => (
         <div className="p-2" key={product.id}>
           <Card className="group relative overflow-hidden border border-border dark:border-slate-700 hover:border-primary/50 hover:shadow-xl transition-all duration-300 h-full">
-            <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
-              {product.priceAfterDiscount && (
-                <span className="px-2 py-1 bg-destructive text-destructive-foreground text-xs font-bold rounded">
-                  SALE
-                </span>
-              )}
-            </div>
-
             <Link href={`/products/${product.id}`}>
               <div className="relative aspect-square overflow-hidden bg-linear-to-br from-secondary to-accent/10">
                 <div className="absolute inset-0 bg-linear-to-t from-background/30 via-transparent to-transparent z-10" />
