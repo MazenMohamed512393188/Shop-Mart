@@ -33,7 +33,7 @@ export default async function AllOrdersModern() {
         userId = cartData?.data?.cartOwner || cartData?.data?.user?._id;
       }
     } catch (error) {
-      console.log("Cart is empty or unavailable");
+      console.log("Cart is empty or unavailable",error);
     }
 
     if (!userId) {
@@ -50,13 +50,13 @@ export default async function AllOrdersModern() {
           userId = userData?.data?._id;
         }
       } catch (error) {
-        console.log("Could not fetch user profile");
+        console.log("Could not fetch user profile",error);
       }
     }
 
     if (!userId) {
       return (
-        <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
+        <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
           <div className="container mx-auto px-4 py-24">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary mb-6">
                 <Package className="w-10 h-10" />
@@ -78,23 +78,25 @@ export default async function AllOrdersModern() {
           "content-type": "application/json",
         },
         next: { revalidate: 60 },
-        cache: "no-store",
       }
     );    
 
     const ordersData = await ordersResponse.json();
-    const orders = ordersData?.data || ordersData || [];
+    const allOrders = ordersData?.data || ordersData || [];
+    const orders = allOrders.filter((order: OrderRes) => 
+      order.cartItems && order.cartItems.length > 0
+    );
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 dark:bg-slate-900">
+      <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:bg-slate-900">
         {/* Header */}
         <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10" />
+          <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-accent/10 to-primary/10" />
           <div className="container mx-auto px-4 py-24 relative">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-6">
                 <Package className="w-8 h-8" />
               </div>
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-linear-to-r from-foreground via-primary to-accent bg-clip-text text-transparent">
                 My Orders
               </h1>
               <p className="text-xl text-muted-foreground dark:text-slate-300 leading-relaxed">
@@ -213,7 +215,7 @@ export default async function AllOrdersModern() {
                       Order Items ({order.cartItems?.length || 0})
                     </h3>
                     
-                    {order.cartItems && order.cartItems.length > 0 ? (
+                    {order.cartItems &&
                       <div className="space-y-3">
                         {order.cartItems.map((item) => (
                           <div
@@ -221,7 +223,7 @@ export default async function AllOrdersModern() {
                             className="flex items-center gap-4 p-3 bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-colors"
                           >
                             {item.product?.imageCover && (
-                              <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-secondary to-accent/10 flex-shrink-0">
+                              <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-linear-to-br from-secondary to-accent/10 shrink-0">
                                 <Image
                                   src={item.product.imageCover}
                                   alt={item.product.title || "Product"}
@@ -244,15 +246,7 @@ export default async function AllOrdersModern() {
                             </div>
                           </div>
                         ))}
-                      </div>
-                    ) : (
-                      <div className="p-4 bg-warning/10 text-warning rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" />
-                          <p className="text-sm">No items found in this order</p>
-                        </div>
-                      </div>
-                    )}
+                      </div>}
                   </div>
 
                   {/* Order Footer */}
@@ -275,7 +269,7 @@ export default async function AllOrdersModern() {
   } catch (error) {
     console.error("Error fetching orders:", error);
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
+      <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
         <div className="container mx-auto px-4 py-24">
 
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-destructive/10 text-destructive mb-6">
