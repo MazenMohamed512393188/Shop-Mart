@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Star, StarHalf } from "lucide-react";
+import { Star } from "lucide-react";
 import Link from "next/link";
 import AddToCart from "@/components/AddToCart/AddToCart";
 import Loading from "@/components/Loading/Loading";
@@ -62,14 +62,23 @@ async function ProductsList() {
                 )}
               </CardHeader>
               <CardContent className="flex gap-2">
-                <div className="flex">
-                  <Star className="text-amber-400 fill-amber-400" />
-                  <Star className="text-amber-400 fill-amber-400" />
-                  <Star className="text-amber-400 fill-amber-400" />
-                  <Star className="text-amber-400 fill-amber-400" />
-                  <StarHalf className="text-amber-400 fill-amber-400" />
-                </div>
-                <p className="ml-2">{product.ratingsAverage}</p>
+                <div className="flex items-center gap-2 mt-3">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < Math.floor(product.ratingsAverage || 0)
+                              ? "text-amber-400 fill-amber-400"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      ({product.ratingsAverage?.toFixed(1) || "0.0"})
+                    </span>
+                  </div>
               </CardContent>
             </Link>
             <AddToCart productId={product.id} />

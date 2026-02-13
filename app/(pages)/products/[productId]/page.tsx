@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Product } from "@/interfaces/productInterface";
-import { Star, StarHalf } from "lucide-react";
+import { Star } from "lucide-react";
 import { Params } from "next/dist/server/request/params";
 import Image from "next/image";
 import {
@@ -30,18 +30,18 @@ async function ProductDetails({ params }: { params: Params }) {
   const response = await fetch(
     `${process.env.Base_Url}/products/${productId}`,
   );
-  const { data: Product }: { data: Product } = await response.json();
+  const { data: product }: { data: Product } = await response.json();
   return (
     <>
       <Card className="grid grid-cols-1 md:grid-cols-3 items-center mx-auto w-full px-8">
         <div className="col-span-1 w-full h-full p-4">
           <Carousel>
             <CarouselContent>
-              {Product.images.map((img) => (
+              {product.images.map((img) => (
                 <CarouselItem key={img}>
                   <Image
                     src={img}
-                    alt={Product.title}
+                    alt={product.title}
                     width={1920}
                     height={300}
                     className="w-full object-cover"
@@ -55,40 +55,49 @@ async function ProductDetails({ params }: { params: Params }) {
         </div>
         <div className="col-span-2 p-4 space-y-4">
           <CardHeader>
-            <span className="text-gray-300">{Product.brand.slug}</span>
+            <span className="text-gray-300">{product.brand.slug}</span>
             <div className="flex justify-between">
-              <CardTitle className="line-clamp-1">{Product.title}</CardTitle>
+              <CardTitle className="line-clamp-1">{product.title}</CardTitle>
             </div>
-            <CardDescription>{Product.category.name}</CardDescription>
-            <CardDescription>{Product.description}</CardDescription>
-            {Product.priceAfterDiscount ? (
+            <CardDescription>{product.category.name}</CardDescription>
+            <CardDescription>{product.description}</CardDescription>
+            {product.priceAfterDiscount ? (
               <div className="mt-2">
                 <span className="text-sm text-gray-500 line-through mr-2">
-                  {Product.price}EGP
+                  {product.price}EGP
                 </span>
                 <span className="text-sm font-semibold">
-                  {Product.priceAfterDiscount}EGP
+                  {product.priceAfterDiscount}EGP
                 </span>
               </div>
             ) : (
               <div className="mt-2">
                 <span className="text-sm font-semibold">
-                  {formatCurrency(Product.price)}
+                  {formatCurrency(product.price)}
                 </span>
               </div>
             )}
           </CardHeader>
           <CardContent className="flex gap-2">
-            <div className="flex">
-              <Star className="text-amber-400 fill-amber-400" />
-              <Star className="text-amber-400 fill-amber-400" />
-              <Star className="text-amber-400 fill-amber-400" />
-              <Star className="text-amber-400 fill-amber-400" />
-              <StarHalf className="text-amber-400 fill-amber-400" />
-            </div>
-            <p className="ml-2">{Product.ratingsAverage}</p>
+            <div className="flex items-center gap-2 mt-3">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < Math.floor(product.ratingsAverage || 0)
+                              ? "text-amber-400 fill-amber-400"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      ({product.ratingsAverage?.toFixed(1) || "0.0"})
+                    </span>
+                  </div>
           </CardContent>
-          <AddToCart productId={Product.id} />
+          <AddToCart productId={product.id} />
         </div>
       </Card>
     </>

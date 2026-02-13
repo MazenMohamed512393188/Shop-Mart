@@ -30,9 +30,9 @@ async function CategoryInfo({ categoryId }: { categoryId: string }) {
   const { data: categoryData } = await response.json();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
+    <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10" />
+        <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-accent/10 to-primary/10" />
         <div className="container mx-auto px-4 py-24 relative">
           <div className="flex flex-col lg:flex-row items-center gap-12 max-w-6xl mx-auto">
             {categoryData.image && (
@@ -45,7 +45,7 @@ async function CategoryInfo({ categoryId }: { categoryId: string }) {
                     className="object-cover"
                     sizes="(max-width: 1024px) 100vw, 40vw"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-t from-background/50 via-transparent to-transparent" />
                 </div>
                 <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-accent/20 rounded-full blur-3xl" />
                 </div>
@@ -55,7 +55,7 @@ async function CategoryInfo({ categoryId }: { categoryId: string }) {
                 <Package className="w-4 h-4" />
                 {categoryData.name}
               </div>
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 bg-linear-to-r from-foreground via-primary to-accent bg-clip-text text-transparent">
                 {categoryData.name}
               </h1>
               {categoryData.slug && (
@@ -99,7 +99,7 @@ async function CategoryProducts({ categoryId }: { categoryId: string }) {
           <div className="text-6xl mb-6">📦</div>
           <h3 className="text-2xl font-bold mb-4">No Products Found</h3>
           <p className="text-muted-foreground mb-8">
-            This category doesn't have any products available at the moment.
+            This category does not have any products available at the moment.
           </p>
           <Link
             href="/products"
@@ -140,8 +140,8 @@ async function CategoryProducts({ categoryId }: { categoryId: string }) {
                 </div>
 
                 <Link href={`/products/${product.id}`}>
-                  <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-secondary to-accent/10">
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/30 via-transparent to-transparent z-10" />
+                  <div className="relative aspect-square overflow-hidden bg-linear-to-br from-secondary to-accent/10">
+                    <div className="absolute inset-0 bg-linear-to-t from-background/30 via-transparent to-transparent z-10" />
                     <Image
                       src={product.imageCover}
                       alt={product.title}
@@ -218,7 +218,7 @@ async function CategoryProducts({ categoryId }: { categoryId: string }) {
 
 function CategoryInfoSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
+    <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
       <div className="container mx-auto px-4 py-24">
         <div className="flex flex-col lg:flex-row items-center gap-12 max-w-6xl mx-auto">
           <div className="w-full lg:w-2/5">
