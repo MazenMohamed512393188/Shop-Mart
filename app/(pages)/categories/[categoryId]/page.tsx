@@ -1,5 +1,11 @@
 import Image from "next/image";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Star, ShoppingBag, Filter, TrendingUp, Package } from "lucide-react";
 import Link from "next/link";
 import AddToCart from "@/components/AddToCart/AddToCart";
@@ -19,9 +25,12 @@ interface Params {
 }
 
 async function CategoryInfo({ categoryId }: { categoryId: string }) {
-  const response = await fetch(`${process.env.Base_Url}/categories/${categoryId}`, {
-    next: { revalidate: 60 },
-  });
+  const response = await fetch(
+    `${process.env.Base_Url}/categories/${categoryId}`,
+    {
+      next: { revalidate: 60 },
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to fetch category details");
@@ -48,31 +57,31 @@ async function CategoryInfo({ categoryId }: { categoryId: string }) {
                   <div className="absolute inset-0 bg-linear-to-t from-background/50 via-transparent to-transparent" />
                 </div>
                 <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-accent/20 rounded-full blur-3xl" />
-                </div>
+              </div>
             )}
-            
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground text-sm font-medium mb-6">
-                <Package className="w-4 h-4" />
-                {categoryData.name}
+
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground text-sm font-medium mb-6">
+              <Package className="w-4 h-4" />
+              {categoryData.name}
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 bg-linear-to-r from-foreground via-primary to-accent bg-clip-text text-transparent">
+              {categoryData.name}
+            </h1>
+            {categoryData.slug && (
+              <p className="text-lg text-muted-foreground dark:text-slate-300 mb-8 leading-relaxed">
+                {categoryData.slug}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary dark:bg-slate-800/50">
+                <TrendingUp className="w-4 h-4" />
+                <span className="font-medium">Trending Collection</span>
               </div>
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 bg-linear-to-r from-foreground via-primary to-accent bg-clip-text text-transparent">
-                {categoryData.name}
-              </h1>
-              {categoryData.slug && (
-                <p className="text-lg text-muted-foreground dark:text-slate-300 mb-8 leading-relaxed">
-                  {categoryData.slug}
-                </p>
-              )}
-              <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary dark:bg-slate-800/50">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="font-medium">Trending Collection</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary dark:bg-slate-800/50">
-                  <Filter className="w-4 h-4" />
-                  <span className="font-medium">Curated Selection</span>
-                </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary dark:bg-slate-800/50">
+                <Filter className="w-4 h-4" />
+                <span className="font-medium">Curated Selection</span>
               </div>
+            </div>
           </div>
         </div>
       </div>
@@ -83,7 +92,7 @@ async function CategoryInfo({ categoryId }: { categoryId: string }) {
 async function CategoryProducts({ categoryId }: { categoryId: string }) {
   const response = await fetch(
     `${process.env.Base_Url}/products?category=${categoryId}`,
-    { next: { revalidate: 60 } }
+    { next: { revalidate: 60 } },
   );
 
   if (!response.ok) {
@@ -115,103 +124,101 @@ async function CategoryProducts({ categoryId }: { categoryId: string }) {
 
   return (
     <div className="container mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Products in Category</h2>
-            <p className="text-muted-foreground">
-              Discover our premium collection in {data.data[0]?.category?.name}
-            </p>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {data.results || data.data.length} products
-          </div>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-3xl font-bold mb-2">Products in Category</h2>
+          <p className="text-muted-foreground">
+            Discover our premium collection in {data.data[0]?.category?.name}
+          </p>
         </div>
+        <div className="text-sm text-muted-foreground">
+          {data.results || data.data.length} products
+        </div>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {data.data.map((product) => (
-            <div key={product._id}>
-              <Card className="group relative overflow-hidden border border-border dark:border-slate-700 hover:border-primary/50 hover:shadow-xl transition-all duration-300 h-full">
-                <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
-                  {product.priceAfterDiscount && (
-                    <span className="px-2 py-1 bg-destructive text-destructive-foreground text-xs font-bold rounded">
-                      SALE
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {data.data.map((product) => (
+          <div key={product._id}>
+            <Card className="group relative overflow-hidden border border-border dark:border-slate-700 hover:border-primary/50 hover:shadow-xl transition-all duration-300 h-full">
+              <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
+                {product.priceAfterDiscount && (
+                  <span className="px-2 py-1 bg-destructive text-destructive-foreground text-xs font-bold rounded">
+                    SALE
+                  </span>
+                )}
+              </div>
+
+              <Link href={`/products/${product.id}`}>
+                <div className="relative aspect-square overflow-hidden bg-linear-to-br from-secondary to-accent/10">
+                  <div className="absolute inset-0 bg-linear-to-t from-background/30 via-transparent to-transparent z-10" />
+                  <Image
+                    src={product.imageCover}
+                    alt={product.title}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                  />
+                </div>
+              </Link>
+
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex-1">
+                    <Link href={`/products/${product.id}`}>
+                      <CardTitle className="line-clamp-1 group-hover:text-primary transition-colors mb-1">
+                        {product.title}
+                      </CardTitle>
+                    </Link>
+                    <CardDescription className="line-clamp-1">
+                      {product.category?.name}
+                    </CardDescription>
+                  </div>
+                  <AddToWishlist productId={product.id} />
+                </div>
+
+                <div className="flex items-center gap-2 mt-2">
+                  {product.priceAfterDiscount ? (
+                    <>
+                      <span className="text-lg font-bold text-foreground">
+                        {formatCurrency(product.priceAfterDiscount)}
+                      </span>
+                      <span className="text-sm text-muted-foreground line-through">
+                        {formatCurrency(product.price)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-lg font-bold text-foreground">
+                      {formatCurrency(product.price)}
                     </span>
                   )}
                 </div>
 
-                <Link href={`/products/${product.id}`}>
-                  <div className="relative aspect-square overflow-hidden bg-linear-to-br from-secondary to-accent/10">
-                    <div className="absolute inset-0 bg-linear-to-t from-background/30 via-transparent to-transparent z-10" />
-                    <Image
-                      src={product.imageCover}
-                      alt={product.title}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                    />
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-4 h-4 ${
+                          i < Math.floor(product.ratingsAverage || 0)
+                            ? "text-amber-400 fill-amber-400"
+                            : "text-gray-300"
+                        }`}
+                      />
+                    ))}
                   </div>
-                </Link>
+                  <span className="text-sm text-muted-foreground">
+                    ({product.ratingsAverage?.toFixed(1) || "0.0"})
+                  </span>
+                </div>
+              </CardHeader>
 
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex-1">
-                      <Link href={`/products/${product.id}`}>
-                        <CardTitle className="line-clamp-1 group-hover:text-primary transition-colors mb-1">
-                          {product.title}
-                        </CardTitle>
-                      </Link>
-                      <CardDescription className="line-clamp-1">
-                        {product.category?.name}
-                      </CardDescription>
-                    </div>
-                    <AddToWishlist 
-                      productId={product.id} 
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-2">
-                    {product.priceAfterDiscount ? (
-                      <>
-                        <span className="text-lg font-bold text-foreground">
-                          {formatCurrency(product.priceAfterDiscount)}
-                        </span>
-                        <span className="text-sm text-muted-foreground line-through">
-                          {formatCurrency(product.price)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-lg font-bold text-foreground">
-                        {formatCurrency(product.price)}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-3">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < Math.floor(product.ratingsAverage || 0)
-                              ? "text-amber-400 fill-amber-400"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      ({product.ratingsAverage?.toFixed(1) || "0.0"})
-                    </span>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pt-0">
-                  <AddToCart productId={product.id} />
-                </CardContent>
-              </Card>
-              </div>
-          ))}
-        </div>
+              <CardContent className="pt-0">
+                <AddToCart productId={product.id} />
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -265,7 +272,11 @@ function ProductsSkeleton() {
   );
 }
 
-export default async function CategoryDetailsPageModern({ params }: { params: Promise<Params> }) {
+export default async function CategoryDetailsPageModern({
+  params,
+}: {
+  params: Promise<Params>;
+}) {
   const { categoryId } = await params;
 
   return (

@@ -13,7 +13,7 @@ import AddToCart from "@/components/AddToCart/AddToCart";
 import Loading from "@/components/Loading/Loading";
 import { Suspense } from "react";
 import AddToWishlist from "@/components/AddToWishlist/AddToWishlist";
-const formatCurrency = (amount : number, currency = "EGP", locale = "en-US") => {
+const formatCurrency = (amount: number, currency = "EGP", locale = "en-US") => {
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: currency,
@@ -27,62 +27,82 @@ async function ProductsList() {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {data.data.map((product) => (
         <div className="p-2" key={product.id}>
-          <Card className="relative mx-auto w-full max-w-sm pt-0">
-            <Link className="cursor-pointer" href={"/products/" + product.id}>
-              <Image
-                src={product.imageCover}
-                alt={product.brand.name}
-                width={1920}
-                height={300}
-                className="relative z-20 w-full h-60 object-cover"
-              />
-              <CardHeader>
-                <span className="text-gray-300">{product.brand.slug}</span>
-                <div className="flex justify-between">
-                  <CardTitle className="line-clamp-1">
-                    {product.title}
-                  </CardTitle>
+          <Card className="group relative overflow-hidden border border-border dark:border-slate-700 hover:border-primary/50 hover:shadow-xl transition-all duration-300 h-full">
+            <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
+              {product.priceAfterDiscount && (
+                <span className="px-2 py-1 bg-destructive text-destructive-foreground text-xs font-bold rounded">
+                  SALE
+                </span>
+              )}
+            </div>
+
+            <Link href={`/products/${product.id}`}>
+              <div className="relative aspect-square overflow-hidden bg-linear-to-br from-secondary to-accent/10">
+                <div className="absolute inset-0 bg-linear-to-t from-background/30 via-transparent to-transparent z-10" />
+                <Image
+                  src={product.imageCover}
+                  alt={product.title}
+                  fill
+                  className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                />
+              </div>
+            </Link>
+
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex-1">
+                  <Link href={`/products/${product.id}`}>
+                    <CardTitle className="line-clamp-1 group-hover:text-primary transition-colors mb-1">
+                      {product.title}
+                    </CardTitle>
+                  </Link>
+                  <CardDescription className="line-clamp-1">
+                    {product.category?.name}
+                  </CardDescription>
                 </div>
-                <CardDescription>{product.category.name}</CardDescription>
+                <AddToWishlist productId={product.id} />
+              </div>
+
+              <div className="flex items-center gap-2 mt-2">
                 {product.priceAfterDiscount ? (
-                  <div className="mt-2">
-                    <span className="text-sm text-gray-500 line-through mr-2">
-                      {product.price}EGP
+                  <>
+                    <span className="text-lg font-bold text-foreground">
+                      {formatCurrency(product.priceAfterDiscount)}
                     </span>
-                    <span className="text-sm font-semibold">
-                      {product.priceAfterDiscount}EGP
-                    </span>
-                  </div>
-                ) : (
-                  <div className="mt-2">
-                    <span className="text-sm font-semibold">
+                    <span className="text-sm text-muted-foreground line-through">
                       {formatCurrency(product.price)}
                     </span>
-                  </div>
+                  </>
+                ) : (
+                  <span className="text-lg font-bold text-foreground">
+                    {formatCurrency(product.price)}
+                  </span>
                 )}
-              </CardHeader>
-              <CardContent className="flex gap-2">
-                <div className="flex items-center gap-2 mt-3">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < Math.floor(product.ratingsAverage || 0)
-                              ? "text-amber-400 fill-amber-400"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      ({product.ratingsAverage?.toFixed(1) || "0.0"})
-                    </span>
-                  </div>
-              </CardContent>
-            </Link>
-            <AddToCart productId={product.id} />
-            <AddToWishlist productId={product.id} />
+              </div>
+
+              <div className="flex items-center gap-2 mt-3">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${
+                        i < Math.floor(product.ratingsAverage || 0)
+                          ? "text-amber-400 fill-amber-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  ({product.ratingsAverage?.toFixed(1) || "0.0"})
+                </span>
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              <AddToCart productId={product.id} />
+            </CardContent>
           </Card>
         </div>
       ))}
@@ -93,7 +113,7 @@ async function ProductsList() {
 export default function products() {
   return (
     <Suspense fallback={<Loading />}>
-      <ProductsList  />
+      <ProductsList />
     </Suspense>
   );
 }
