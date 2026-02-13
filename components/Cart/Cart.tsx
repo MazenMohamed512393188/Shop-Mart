@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,8 @@ import {
   Truck,
   Shield,
   CreditCard,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { CartRes } from "@/interfaces/cartInterface";
 import {
@@ -73,7 +75,29 @@ const benefits = [
   { icon: <CreditCard />, title: "Secure Payment", description: "100% secure" },
 ];
 
+enum ErrorType {
+  NETWORK = 'network',
+  SERVER = 'server',
+  VALIDATION = 'validation',
+  PAYMENT = 'payment',
+  CART_EMPTY = 'cart_empty',
+  UNKNOWN = 'unknown'
+}
+
+// ✅ رسائل خطأ واضحة
+const ERROR_MESSAGES = {
+  [ErrorType.NETWORK]: "Connection lost. Please check your internet and try again.",
+  [ErrorType.SERVER]: "Our servers are experiencing issues. Your cart is saved. Please try again in a few moments.",
+  [ErrorType.VALIDATION]: "Please check your information and try again.",
+  [ErrorType.PAYMENT]: "Payment service is temporarily unavailable. You can still use Cash on Delivery.",
+  [ErrorType.CART_EMPTY]: "Your cart is empty. Please add items first.",
+  [ErrorType.UNKNOWN]: "Something went wrong. Please try again."
+};
+
 export default function CartModern({ cartData }: { cartData: CartRes | null }) {
+  const [isOnline, setIsOnline] = useState(true);
+  const [showRetryButton, setShowRetryButton] = useState(false);
+  const [pendingAction, setPendingAction] = useState<any>(null);
   const detailsInput = useRef<HTMLInputElement | null>(null);
   const cityInput = useRef<HTMLInputElement | null>(null);
   const phoneInput = useRef<HTMLInputElement | null>(null);
@@ -85,67 +109,220 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
 
   const router = useRouter();
 
-  async function deleteCartProduct(productId: string) {
-    setLoadingId(productId);
-    const response: CartRes = await deleteProductAction(productId);
-    if (response.status === "success") {
-      setCart(response);
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success("Connection restored");
       
-      if (!response.data?.products || response.data.products.length === 0) {
-        toast.success("Last item removed from cart");
-        
-        router.refresh();
-        
-        setCart(null);
-      } else {
-        toast.success("Item removed from cart");
+      // محاولة إعادة الـ action اللي فشل
+      if (pendingAction) {
+        retryPendingAction();
       }
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.error("You are offline. Please check your connection.", {
+        duration: 8000
+      });
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // تحقق من الحالة الحالية
+    setIsOnline(navigator.onLine);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [pendingAction]);
+
+  // ✅ تصنيف الأخطاء
+  function classifyError(error: any): ErrorType {
+    // فحص الاتصال بالإنترنت
+    if (!navigator.onLine) return ErrorType.NETWORK;
+    
+    // فحص أخطاء الـ fetch
+    if (error instanceof TypeError || error.message?.includes('fetch')) {
+      return ErrorType.NETWORK;
     }
-    setLoadingId(null);
+    
+    // فحص HTTP status codes
+    const status = error.response?.status || error.status;
+    if (status >= 500) return ErrorType.SERVER;
+    if (status >= 400) return ErrorType.VALIDATION;
+    
+    // فحص أخطاء محددة
+    const code = error.code || error.response?.data?.code;
+    if (code === 'CART_NOT_FOUND' || code === 'EMPTY_CART') {
+      return ErrorType.CART_EMPTY;
+    }
+    if (code?.includes('PAYMENT') || code?.includes('STRIPE')) {
+      return ErrorType.PAYMENT;
+    }
+    
+    return ErrorType.UNKNOWN;
   }
 
-  async function clearCart() {
-    setLoadingId("clear");
-    const response: CartRes = await clearCartAction();
-    if (response.message === "success") {
-      setCart(null);
-      toast.success("Cart cleared successfully");
-      
-      router.refresh();
+  // ✅ عرض الأخطاء بشكل مناسب
+  function handleError(error: any, context: string = '') {
+    console.error(`Error in ${context}:`, error);
+    
+    const errorType = classifyError(error);
+    const message = ERROR_MESSAGES[errorType];
+    
+    // عرض رسالة الخطأ
+    toast.error(message, {
+      duration: errorType === ErrorType.NETWORK ? 8000 : 5000,
+    });
+    
+    // معالجة خاصة حسب نوع الخطأ
+    switch (errorType) {
+      case ErrorType.NETWORK:
+        setShowRetryButton(true);
+        break;
+        
+      case ErrorType.CART_EMPTY:
+        setCart(null);
+        setIsDialogOpen(false);
+        router.refresh();
+        break;
+        
+      case ErrorType.PAYMENT:
+        // نعرض خيار الدفع Cash
+        toast.info("You can still complete your order with Cash on Delivery", {
+          duration: 6000
+        });
+        break;
     }
-    setLoadingId(null);
   }
 
-  async function updateCart(count: number, productId: string) {
+  // ✅ إعادة المحاولة
+  async function retryPendingAction() {
+    if (!pendingAction) return;
+    
+    try {
+      await pendingAction.action();
+      setPendingAction(null);
+      setShowRetryButton(false);
+      toast.success("Action completed successfully");
+    } catch (error) {
+      handleError(error, 'Retry');
+    }
+  }
+
+  // ✅ Delete Product مع Error Handling
+  async function deleteCartProduct(productId: string) {
+    // تحقق من الاتصال
+    if (!isOnline) {
+      toast.error("You are offline. Please check your connection.");
+      return;
+    }
+
     setLoadingId(productId);
-    const response: CartRes = await updateCartAction(count, productId);
-    if (response.status === "success") {
-      setCart(response);
-      toast.success("Cart updated successfully");
+    
+    try {
+      const response: CartRes = await deleteProductAction(productId);
+      
+      if (response.status === "success") {
+        setCart(response);
+        
+        if (!response.data?.products || response.data.products.length === 0) {
+          toast.success("Last item removed from cart");
+          router.refresh();
+          setCart(null);
+        } else {
+          toast.success("Item removed from cart");
+        }
+      } else {
+        throw new Error(response.message || 'Failed to delete product');
+      }
+      
+    } catch (error) {
+      handleError(error, 'deleteCartProduct');
+      
+      // حفظ الـ action للمحاولة لاحقاً
+      setPendingAction({
+        type: 'delete',
+        productId,
+        action: () => deleteCartProduct(productId)
+      });
+      
+    } finally {
+      setLoadingId(null);
     }
-    setLoadingId(null);
   }
 
+  // ✅ Update Cart مع Error Handling
+  async function updateCart(count: number, productId: string) {
+    if (!isOnline) {
+      toast.error("You are offline. Please check your connection.");
+      return;
+    }
+
+    setLoadingId(productId);
+    
+    try {
+      const response: CartRes = await updateCartAction(count, productId);
+      
+      if (response.status === "success") {
+        setCart(response);
+        toast.success("Cart updated successfully");
+      } else {
+        throw new Error(response.message || 'Failed to update cart');
+      }
+      
+    } catch (error) {
+      handleError(error, 'updateCart');
+      
+      // إرجاع الـ UI للحالة السابقة
+      toast.error("Update failed. Please try again.");
+      
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  // ✅ Checkout مع Error Handling شامل
   async function handleCheckOut() {
     const details = detailsInput.current?.value?.trim();
     const city = cityInput.current?.value?.trim();
     const phone = phoneInput.current?.value?.trim();
 
+    // Validation
     if (!details || !city || !phone) {
       toast.error("Please fill all shipping address fields");
       return;
     }
 
+    // تحقق من الـ Cart
     if (!cart?.data?._id || !cart?.data?.products || cart.data.products.length === 0) {
-      toast.error("Cart is empty");
+      toast.error("Your cart is empty");
       setIsDialogOpen(false);
       router.refresh();
       return;
     }
 
-    try {
-      setIsCheckoutLoading(true);
+    // تحقق من الاتصال
+    if (!isOnline) {
+      toast.error("You are offline. Please check your connection before checkout.");
+      return;
+    }
 
+    setIsCheckoutLoading(true);
+    
+    // ✅ Timeout بعد 30 ثانية
+    const timeout = setTimeout(() => {
+      setIsCheckoutLoading(false);
+      toast.error(
+        "Request is taking too long. Please check your connection and try again.",
+        { duration: 8000 }
+      );
+    }, 30000);
+
+    try {
       const response = await checkOutAction(
         cart.data._id,
         details,
@@ -153,26 +330,55 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
         phone,
       );
 
+      clearTimeout(timeout);
+
       if (response.status === "success" || response.statusMsg === "success") {
         if (response.session?.url) {
           sessionStorage.setItem('payment_in_progress', 'true');
+          
+          // حفظ بيانات الـ checkout للـ recovery
+          sessionStorage.setItem('checkout_data', JSON.stringify({
+            cartId: cart.data._id,
+            details,
+            city,
+            phone,
+            timestamp: Date.now()
+          }));
+          
           toast.success("Redirecting to payment...");
           window.location.href = response.session.url;
         } else {
-          toast.error("Payment URL not found in response");
-          setIsCheckoutLoading(false);
+          throw new Error('Payment URL not found');
         }
-      } else {
-        toast.error("Checkout failed");
+        
+      } else if (response.code === 'PAYMENT_SERVICE_UNAVAILABLE') {
+        // ✅ Stripe غير متاح
+        toast.error(
+          "Online payment is temporarily unavailable. You can use Cash on Delivery instead.",
+          { duration: 10000 }
+        );
         setIsCheckoutLoading(false);
+        
+      } else {
+        throw new Error(response.message || 'Checkout failed');
       }
+      
     } catch (error: any) {
-      console.error("Checkout error:", error);
-      toast.error("An error occurred during checkout");
+      clearTimeout(timeout);
+      handleError(error, 'handleCheckOut');
+      
+      // حفظ للمحاولة لاحقاً
+      setPendingAction({
+        type: 'checkout',
+        data: { details, city, phone },
+        action: () => handleCheckOut()
+      });
+      
       setIsCheckoutLoading(false);
     }
   }
 
+  // ✅ Cash Payment مع Error Handling
   async function handleCash() {
     const details = detailsInput.current?.value?.trim();
     const city = cityInput.current?.value?.trim();
@@ -184,35 +390,136 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     }
 
     if (!cart?.data?._id || !cart?.data?.products || cart.data.products.length === 0) {
-      toast.error("Cart is empty");
+      toast.error("Your cart is empty");
       setIsDialogOpen(false);
       router.refresh();
       return;
     }
 
-    try {
-      setIsCashLoading(true);
+    if (!isOnline) {
+      toast.error("You are offline. Please check your connection.");
+      return;
+    }
 
+    setIsCashLoading(true);
+    
+    const timeout = setTimeout(() => {
+      setIsCashLoading(false);
+      toast.error("Request is taking too long. Please try again.");
+    }, 30000);
+
+    try {
       const response = await cashAction(cart.data._id, details, city, phone);
+
+      clearTimeout(timeout);
 
       if (response.status === "success" || response.statusMsg === "success") {
         toast.success("Order created successfully!");
         setIsDialogOpen(false);
         router.push("/allorders");
-      } else {
-        toast.error("Order creation failed");
+        
+      } else if (response.code === 'INSUFFICIENT_STOCK') {
+        // ✅ منتج معين out of stock
+        toast.error(
+          `${response.productName || 'A product'} is out of stock. Please update your cart.`,
+          { duration: 8000 }
+        );
         setIsCashLoading(false);
+        setIsDialogOpen(false);
+        router.refresh();
+        
+      } else {
+        throw new Error(response.message || 'Order creation failed');
       }
+      
     } catch (error: any) {
-      console.error("Cash payment error:", error);
-      toast.error("An error occurred during cash payment");
+      clearTimeout(timeout);
+      handleError(error, 'handleCash');
+      
+      // حفظ للمحاولة لاحقاً
+      setPendingAction({
+        type: 'cash',
+        data: { details, city, phone },
+        action: () => handleCash()
+      });
+      
       setIsCashLoading(false);
     }
+  }
+
+  // ✅ Clear Cart مع Error Handling
+  async function clearCart() {
+    if (!isOnline) {
+      toast.error("You are offline. Please check your connection.");
+      return;
+    }
+
+    setLoadingId("clear");
+    
+    try {
+      const response: CartRes = await clearCartAction();
+      
+      if (response.message === "success") {
+        setCart(null);
+        toast.success("Cart cleared successfully");
+        router.refresh();
+      } else {
+        throw new Error('Failed to clear cart');
+      }
+      
+    } catch (error) {
+      handleError(error, 'clearCart');
+    } finally {
+      setLoadingId(null);
+    }
+  }
+if (!isOnline) {
+    return (
+      <div className="min-h-screen bg-linear-to-b from-background to-secondary/30">
+        <div className="container mx-auto px-4 py-24">
+          <div className="max-w-md mx-auto text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-warning/10 text-warning mb-6">
+              <AlertCircle className="w-10 h-10" />
+            </div>
+            <h1 className="text-3xl font-bold mb-4">You Are Offline</h1>
+            <p className="text-muted-foreground mb-8">
+              Please check your internet connection and try again.
+            </p>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!cart || !cart.data?.products || cart.data.products.length === 0) {
     return (
       <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
+        {/* ✅ Retry Banner */}
+      {showRetryButton && pendingAction && (
+        <div className="bg-warning/10 border-b border-warning/20 py-3">
+          <div className="container mx-auto px-4 flex items-center justify-between">
+            <p className="text-sm text-warning">
+              An action failed. Click retry to try again.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={retryPendingAction}
+              disabled={!isOnline}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
         <div className="container mx-auto px-4 py-24">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
