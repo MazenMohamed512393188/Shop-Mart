@@ -36,7 +36,6 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -82,6 +81,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [isCashLoading, setIsCashLoading] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const router = useRouter();
 
@@ -90,6 +90,16 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     const response: CartRes = await deleteProductAction(productId);
     if (response.status === "success") {
       setCart(response);
+      
+      if (!response.data?.products || response.data.products.length === 0) {
+        toast.success("Last item removed from cart");
+        
+        router.refresh();
+        
+        setCart(null);
+      } else {
+        toast.success("Item removed from cart");
+      }
     }
     setLoadingId(null);
   }
@@ -99,6 +109,9 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     const response: CartRes = await clearCartAction();
     if (response.message === "success") {
       setCart(null);
+      toast.success("Cart cleared successfully");
+      
+      router.refresh();
     }
     setLoadingId(null);
   }
@@ -123,8 +136,10 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
       return;
     }
 
-    if (!cart?.data._id) {
+    if (!cart?.data?._id || !cart?.data?.products || cart.data.products.length === 0) {
       toast.error("Cart is empty");
+      setIsDialogOpen(false);
+      router.refresh();
       return;
     }
 
@@ -140,18 +155,20 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
 
       if (response.status === "success" || response.statusMsg === "success") {
         if (response.session?.url) {
+          sessionStorage.setItem('payment_in_progress', 'true');
           toast.success("Redirecting to payment...");
           window.location.href = response.session.url;
         } else {
           toast.error("Payment URL not found in response");
+          setIsCheckoutLoading(false);
         }
       } else {
         toast.error("Checkout failed");
+        setIsCheckoutLoading(false);
       }
     } catch (error: any) {
       console.error("Checkout error:", error);
-      toast.error( "An error occurred during checkout");
-    } finally {
+      toast.error("An error occurred during checkout");
       setIsCheckoutLoading(false);
     }
   }
@@ -166,8 +183,10 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
       return;
     }
 
-    if (!cart?.data._id) {
+    if (!cart?.data?._id || !cart?.data?.products || cart.data.products.length === 0) {
       toast.error("Cart is empty");
+      setIsDialogOpen(false);
+      router.refresh();
       return;
     }
 
@@ -178,19 +197,20 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
 
       if (response.status === "success" || response.statusMsg === "success") {
         toast.success("Order created successfully!");
+        setIsDialogOpen(false);
         router.push("/allorders");
       } else {
         toast.error("Order creation failed");
+        setIsCashLoading(false);
       }
     } catch (error: any) {
       console.error("Cash payment error:", error);
       toast.error("An error occurred during cash payment");
-    } finally {
       setIsCashLoading(false);
     }
   }
 
-  if (!cart) {
+  if (!cart || !cart.data?.products || cart.data.products.length === 0) {
     return (
       <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
         <div className="container mx-auto px-4 py-24">
@@ -221,88 +241,87 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
-      {/* Header */}
-      <div className="container mx-auto px-4 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary">
-              <ShoppingBag className="w-6 h-6" />
+    <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:bg-slate-900">
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-accent/10 to-primary/10" />
+        <div className="container mx-auto px-4 py-24 relative">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-6">
+              <ShoppingCart className="w-8 h-8" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold">Shopping Cart</h1>
-          </div>
-          <p className="text-muted-foreground dark:text-slate-300">
-            {cart.numOfCartItems} item{cart.numOfCartItems !== 1 ? "s" : ""} in
-            your cart
-          </p>
-        </motion.div>
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-linear-to-r from-foreground via-primary to-accent bg-clip-text text-transparent">
+              Shopping Cart
+            </h1>
+            <p className="text-xl text-muted-foreground dark:text-slate-300 leading-relaxed">
+              {cart.numOfCartItems} {cart.numOfCartItems === 1 ? "item" : "items"} ready for checkout
+            </p>
+          </motion.div>
+        </div>
+      </div>
 
+      <div className="container mx-auto px-4 mt-8 pb-24">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
           <div className="lg:col-span-2">
             <div className="space-y-4">
               <AnimatePresence>
-                {cart.data.products.map((item) => (
+                {cart.data.products.map((item, index) => (
                   <motion.div
-                    key={item._id}
+                    key={item.product.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
-                    layout
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
                   >
-                    <div className="group bg-card dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-border dark:border-slate-700 p-4 hover:border-primary/50 hover:shadow-lg transition-all">
-                      {loadingId === item.product.id && (
-                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex justify-center items-center rounded-xl z-10">
-                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                        </div>
-                      )}
-
-                      <div className="flex gap-4">
-                        {/* Product Image */}
-                        <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-linear-to-br from-secondary to-accent/10 shrink-0">
-                          <div className="absolute inset-0 bg-linear-to-t from-background/30 via-transparent to-transparent z-10" />
+                    <div className="bg-card dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-border dark:border-slate-700 p-6 hover:shadow-lg transition-shadow">
+                      <div className="flex gap-6">
+                        <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-linear-to-br from-secondary to-accent/10 shrink-0">
                           <Image
                             src={item.product.imageCover}
                             alt={item.product.title}
                             fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-500"
-                            sizes="100px"
+                            className="object-cover"
+                            sizes="128px"
                           />
                         </div>
 
-                        {/* Product Info */}
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <Link href={`/products/${item.product.id}`}>
-                                <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-1">
-                                  {item.product.title}
-                                </h3>
-                              </Link>
-                              <p className="text-sm text-muted-foreground mb-3">
-                                {item.product.brand.name}
-                              </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-4 mb-4">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-lg mb-2 line-clamp-2">
+                                {item.product.title}
+                              </h3>
+                              <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary/50 rounded">
+                                  {item.product.brand?.name || "No brand"}
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary/50 rounded">
+                                  ⭐ {item.product.ratingsAverage?.toFixed(1) || "N/A"}
+                                </span>
+                              </div>
                             </div>
                             <button
                               onClick={() => deleteCartProduct(item.product.id)}
-                              className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10"
+                              disabled={loadingId === item.product.id}
+                              className="p-2 hover:bg-destructive/10 text-destructive rounded-lg transition-colors disabled:opacity-50"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {loadingId === item.product.id ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-5 h-5" />
+                              )}
                             </button>
                           </div>
 
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-2 bg-secondary rounded-lg p-1">
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-3 bg-secondary/30 rounded-lg p-1">
                                 <button
                                   onClick={() =>
-                                    updateCart(item.count - 1, item.product._id)
+                                    updateCart(item.count - 1, item.product.id)
                                   }
                                   className="w-8 h-8 flex items-center justify-center rounded hover:bg-background transition-colors"
                                   disabled={
@@ -312,12 +331,16 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
                                 >
                                   <Minus className="w-3 h-3" />
                                 </button>
-                                <span className="w-8 text-center font-medium">
-                                  {item.count}
+                                <span className="w-8 text-center font-semibold">
+                                  {loadingId === item.product.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin inline-block" />
+                                  ) : (
+                                    item.count
+                                  )}
                                 </span>
                                 <button
                                   onClick={() =>
-                                    updateCart(item.count + 1, item.product._id)
+                                    updateCart(item.count + 1, item.product.id)
                                   }
                                   className="w-8 h-8 flex items-center justify-center rounded hover:bg-background transition-colors"
                                   disabled={
@@ -344,7 +367,6 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
               </AnimatePresence>
             </div>
 
-            {/* Continue Shopping */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -361,7 +383,6 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
             </motion.div>
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-1">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -372,7 +393,6 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
               <div className="bg-card dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-border dark:border-slate-700 p-6">
                 <h2 className="text-xl font-bold mb-6">Order Summary</h2>
 
-                {/* Price Breakdown */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
@@ -393,15 +413,26 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
                   </div>
                 </div>
 
-                {/* Checkout Dialog */}
-                <Dialog>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 mb-6">
                       Proceed to Checkout
                       <ArrowRight className="w-4 h-4" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-sm">
+                  <DialogContent 
+                    className="sm:max-w-sm"
+                    onInteractOutside={(e) => {
+                      if (isCheckoutLoading || isCashLoading) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onEscapeKeyDown={(e) => {
+                      if (isCheckoutLoading || isCashLoading) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
                     <DialogHeader>
                       <DialogTitle>Add Shipping Address</DialogTitle>
                       <DialogDescription>
@@ -416,6 +447,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
                           ref={cityInput}
                           placeholder="Enter your city"
                           required
+                          disabled={isCheckoutLoading || isCashLoading}
                         />
                       </Field>
                       <Field>
@@ -425,6 +457,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
                           ref={detailsInput}
                           placeholder="Street address, building, etc."
                           required
+                          disabled={isCheckoutLoading || isCashLoading}
                         />
                       </Field>
                       <Field>
@@ -435,13 +468,14 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
                           placeholder="Your phone number"
                           type="tel"
                           required
+                          disabled={isCheckoutLoading || isCashLoading}
                         />
                       </Field>
                     </FieldGroup>
                     <DialogFooter className="flex-col sm:flex-row gap-2">
                       <Button
                         onClick={handleCheckOut}
-                        disabled={isCheckoutLoading}
+                        disabled={isCheckoutLoading || isCashLoading}
                         className="w-full sm:w-auto"
                       >
                         {isCheckoutLoading ? (
@@ -455,7 +489,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
                       </Button>
                       <Button
                         onClick={handleCash}
-                        disabled={isCashLoading}
+                        disabled={isCashLoading || isCheckoutLoading}
                         className="w-full sm:w-auto bg-green-500 hover:bg-green-500/90 dark:bg-green-500/90"
                       >
                         {isCashLoading ? (
@@ -467,16 +501,18 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
                           "Pay with Cash"
                         )}
                       </Button>
-                      <DialogClose asChild>
-                        <Button variant="outline" className="w-full sm:w-auto">
-                          Cancel
-                        </Button>
-                      </DialogClose>
+                      <Button 
+                        variant="outline" 
+                        className="w-full sm:w-auto"
+                        onClick={() => setIsDialogOpen(false)}
+                        disabled={isCheckoutLoading || isCashLoading}
+                      >
+                        Cancel
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
 
-                {/* Benefits */}
                 <div className="space-y-4">
                   {benefits.map((benefit, index) => (
                     <div key={index} className="flex items-center gap-3">
@@ -495,7 +531,6 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
                   ))}
                 </div>
 
-                {/* Clear Cart */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" className="w-full mt-6">
