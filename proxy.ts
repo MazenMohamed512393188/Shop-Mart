@@ -1,7 +1,15 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedRoutes = ["/profile", "/cart"];
+const protectedRoutes = [
+  "/profile-page",
+  "/cart",
+  "/change-password-page",
+  "/reset-password-page",
+  "/edit-profile-page",
+  "/allorders",
+  "/add-address-page",
+];
 
 const authRoutes = ["/login", "/register"];
 
@@ -18,7 +26,6 @@ export default async function middleware(req: NextRequest) {
   }
 
   if (authRoutes.includes(req.nextUrl.pathname)) {
-
     if (token) {
       const redirectUrl = new URL("/", process.env.LOCALHOST);
       return NextResponse.redirect(redirectUrl);
