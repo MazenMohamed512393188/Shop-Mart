@@ -1,14 +1,21 @@
 "use client";
-
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
 import toast from "react-hot-toast";
 import { User } from "@/interfaces/userOrdersInterface";
 import { updateLoggedUserAction } from "@/actions/userAction.action";
-import { UserCircle, Mail, Phone, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import {
+  UserCircle,
+  Mail,
+  Phone,
+  Loader2,
+  ArrowLeft,
+  CheckCircle2,
+} from "lucide-react";
+import { WifiOff, RefreshCw } from "lucide-react";
 
 const updateUserSchema = zod.object({
   name: zod
@@ -21,7 +28,7 @@ const updateUserSchema = zod.object({
     .min(1, "Phone number is required")
     .regex(
       /^(010|011|012|015)\d{8}$/,
-      "Please enter a valid Egyptian phone number (e.g., 01012345678)"
+      "Please enter a valid Egyptian phone number (e.g., 01012345678)",
     ),
 });
 
@@ -32,8 +39,23 @@ interface EditProfileProps {
 }
 
 export default function EditProfile({ user }: EditProfileProps) {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [showRetry, setShowRetry] = useState(false);
+  const [optimisticData, setOptimisticData] = useState(user);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const router = useRouter();
 
   const {
     register,
@@ -49,17 +71,47 @@ export default function EditProfile({ user }: EditProfileProps) {
   });
 
   async function onSubmit(data: UpdateUserFormData) {
+    if (!isOnline) {
+      toast.error("You are offline");
+      return;
+    }
+
+    setIsLoading(true);
+    setShowRetry(false);
+
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+      toast.error("Request taking too long");
+      setShowRetry(true);
+    }, 15000);
+
+    // Save original
+    const originalData = optimisticData;
+
+    // Optimistic update
+    setOptimisticData({
+      ...optimisticData,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+    });
+
+    setIsLoading(true);
     try {
       setIsLoading(true);
 
       const response = await updateLoggedUserAction(
         data.name,
         data.email,
-        data.phone
+        data.phone,
       );
 
+      clearTimeout(timeout);
+
       if (response.message !== "success") {
+        setOptimisticData(originalData);
         toast.error(response.message || "Failed to update profile");
+        setShowRetry(true);
         return;
       }
 
@@ -69,6 +121,9 @@ export default function EditProfile({ user }: EditProfileProps) {
         router.push("/profile-page");
       }, 500);
     } catch (error: any) {
+      setOptimisticData(originalData);
+      toast.error("Network error");
+      setShowRetry(true);
       console.error("Update profile error:", error);
       toast.error(error?.message || "An unexpected error occurred");
     } finally {
@@ -83,12 +138,10 @@ export default function EditProfile({ user }: EditProfileProps) {
         <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
           <UserCircle className="w-10 h-10 text-primary" />
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
           Edit Profile
         </h1>
-        <p className="text-muted-foreground">
-          Update your account information
-        </p>
+        <p className="text-muted-foreground">Update your account information</p>
       </div>
 
       {/* Form Card */}
@@ -171,13 +224,23 @@ export default function EditProfile({ user }: EditProfileProps) {
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <button
               type="submit"
-              disabled={isLoading || !isDirty}
+              disabled={isLoading || !isDirty || !isOnline}
               className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:shadow-glow transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {isLoading ? (
+              {!isOnline ? (
+                <span className="flex items-center gap-2">
+                  <WifiOff className="w-5 h-5" />
+                  Offline
+                </span>
+              ) : isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Saving...
+                </span>
+              ) : showRetry ? (
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5" />
+                  Retry
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">

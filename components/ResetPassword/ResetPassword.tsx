@@ -144,7 +144,7 @@ export default function ResetPasswordModern() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -154,7 +154,7 @@ export default function ResetPasswordModern() {
         {/* Card */}
         <div className="bg-card dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-border dark:border-slate-700 shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary to-accent p-8 text-center text-white">
+          <div className="bg-linear-to-r from-primary to-accent p-8 text-center text-white">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
               <Lock className="w-8 h-8" />
             </div>
@@ -208,7 +208,7 @@ export default function ResetPasswordModern() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-6 p-4 bg-success/10 border border-success/20 rounded-lg text-success text-sm flex items-center gap-2"
               >
-                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                <CheckCircle className="w-4 h-4 shrink-0" />
                 {success}
               </motion.div>
             )}
@@ -220,7 +220,7 @@ export default function ResetPasswordModern() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm flex items-center gap-2"
               >
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 {error}
               </motion.div>
             )}
@@ -233,7 +233,7 @@ export default function ResetPasswordModern() {
                 className="space-y-6"
               >
                 <div>
-                  <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                  <label className="text-sm font-medium mb-2 flex items-center gap-2">
                     <Mail className="w-4 h-4" />
                     Email Address
                   </label>
@@ -255,7 +255,7 @@ export default function ResetPasswordModern() {
                 <button
                   onClick={handleEmail}
                   disabled={loading}
-                  className="w-full py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-linear-to-r from-primary to-accent text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -280,7 +280,7 @@ export default function ResetPasswordModern() {
                 className="space-y-6"
               >
                 <div>
-                  <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                  <label className="text-sm font-medium mb-2 flex items-center gap-2">
                     <Key className="w-4 h-4" />
                     Verification Code
                   </label>
@@ -316,7 +316,7 @@ export default function ResetPasswordModern() {
                   <button
                     onClick={handleCode}
                     disabled={loading || code.length !== 6}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-3 bg-linear-to-r from-primary to-accent text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? "Verifying..." : "Verify Code"}
                   </button>
@@ -332,7 +332,7 @@ export default function ResetPasswordModern() {
                 className="space-y-6"
               >
                 <div>
-                  <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                  <label className="text-sm font-medium mb-2 flex items-center gap-2">
                     <Lock className="w-4 h-4" />
                     New Password
                   </label>

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Mail, Lock, LogIn, ArrowRight } from "lucide-react";
+import { Mail, Lock, LogIn, ArrowRight, WifiOff, RefreshCw } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -21,6 +21,8 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("url");
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isOnline, setIsOnline] = React.useState(true);
+  const [showRetry, setShowRetry] = React.useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -31,9 +33,55 @@ export function LoginForm() {
   });
   
   const router = useRouter();
+
+  // ✅ Online/Offline Detection
+  React.useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success("Connection restored", { duration: 3000 });
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.error("You are offline. Please check your connection.", {
+        duration: 5000,
+        icon: '📡'
+      });
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    setIsOnline(navigator.onLine);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   async function onSubmit(data: z.infer<typeof formSchema>) {
+    // ✅ تحقق من الاتصال أولاً
+    if (!isOnline) {
+      toast.error("You are offline. Please check your connection.", {
+        duration: 5000,
+        icon: '📡'
+      });
+      return;
+    }
+
     setIsLoading(true);
+    setShowRetry(false);
+    
+    // ✅ Timeout بعد 15 ثانية
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+      toast.error("Request is taking too long. Please try again.", {
+        duration: 6000
+      });
+      setShowRetry(true);
+    }, 15000);
+
     try {
       const response = await signIn("credentials", {
         email: data.email,
@@ -42,14 +90,56 @@ export function LoginForm() {
         redirect: false,
       });
       
+      clearTimeout(timeout);
+
       if (response?.error) {
-        toast.error("Invalid credentials. Please try again.");
-      } else {
-        toast.success("Login successful! Redirecting...");
+        // ✅ تمييز أنواع الأخطاء
+        if (response.error.includes('CredentialsSignin') || 
+            response.error.includes('credentials')) {
+          toast.error("Invalid email or password. Please try again.", {
+            duration: 5000,
+            icon: '🔐'
+          });
+        } else if (response.error.includes('fetch') || 
+                   response.error.includes('network')) {
+          toast.error("Connection lost. Please check your internet.", {
+            duration: 8000,
+            icon: '📡'
+          });
+          setShowRetry(true);
+        } else {
+          toast.error("Login failed. Please try again.", {
+            duration: 5000
+          });
+          setShowRetry(true);
+        }
+      } else if (response?.ok) {
+        toast.success("Login successful! Redirecting...", {
+          duration: 2000,
+          icon: '✅'
+        });
         router.push(redirectUrl || "/products");
+        router.refresh();
       }
-    } catch (error) {
-      toast.error("An error occurred. Please try again.");
+      
+    } catch (error: any) {
+      clearTimeout(timeout);
+      console.error("Login error:", error);
+      
+      // ✅ معالجة أنواع الأخطاء
+      if (!navigator.onLine || error.message?.includes('fetch')) {
+        toast.error("Connection lost. Please check your internet.", {
+          duration: 8000,
+          icon: '📡'
+        });
+        setShowRetry(true);
+      } else {
+        toast.error("An unexpected error occurred. Please try again.", {
+          duration: 5000
+        });
+        setShowRetry(true);
+      }
+      
     } finally {
       setIsLoading(false);
     }
@@ -57,8 +147,20 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-md mx-auto animate-fade-in">
+      {/* ✅ Offline Warning */}
+      {!isOnline && (
+        <div className="mb-4 p-4 bg-warning/10 border border-warning/20 rounded-lg">
+          <div className="flex items-center gap-2 text-warning">
+            <WifiOff className="w-5 h-5" />
+            <p className="text-sm font-medium">
+              You are currently offline. Please check your connection.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="text-center mb-8 space-y-2">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
           Welcome Back
         </h1>
         <p className="text-muted-foreground">
@@ -81,7 +183,7 @@ export function LoginForm() {
                   {...field}
                   type="email"
                   placeholder="Enter your email"
-                  disabled={isLoading}
+                  disabled={isLoading || !isOnline}
                   className={`h-12 ${
                     fieldState.invalid ? "border-destructive" : ""
                   }`}
@@ -108,7 +210,7 @@ export function LoginForm() {
                   {...field}
                   type="password"
                   placeholder="Enter your password"
-                  disabled={isLoading}
+                  disabled={isLoading || !isOnline}
                   className={`h-12 ${
                     fieldState.invalid ? "border-destructive" : ""
                   }`}
@@ -134,13 +236,23 @@ export function LoginForm() {
           <div className="space-y-3 pt-2">
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isOnline}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base hover:shadow-glow transition-all duration-300 hover:scale-[1.02]"
             >
-              {isLoading ? (
+              {!isOnline ? (
+                <span className="flex items-center justify-center gap-2">
+                  <WifiOff className="w-5 h-5" />
+                  Offline
+                </span>
+              ) : isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   Signing in...
+                </span>
+              ) : showRetry ? (
+                <span className="flex items-center justify-center gap-2">
+                  <RefreshCw className="w-5 h-5" />
+                  Retry
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
@@ -154,7 +266,7 @@ export function LoginForm() {
               <Button
                 type="button"
                 variant="outline"
-                disabled={isLoading}
+                disabled={isLoading || !isOnline}
                 className="w-full h-12 font-semibold text-base hover:bg-secondary transition-all duration-300"
               >
                 Reset Password
@@ -178,6 +290,7 @@ export function LoginForm() {
           <Button
             type="button"
             variant="outline"
+            disabled={!isOnline}
             className="w-full h-12 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold text-base transition-all duration-300 group"
           >
             <span className="flex items-center justify-center gap-2">

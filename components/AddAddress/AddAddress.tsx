@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
@@ -13,6 +13,7 @@ import {
   isValidEgyptianCity,
 } from "@/helpers/Egyptianlocations";
 import { MapPin, Phone, FileText, Loader2, ArrowLeft } from "lucide-react";
+import { WifiOff, RefreshCw } from "lucide-react";
 
 const addressSchema = zod.object({
   phone: zod
@@ -20,7 +21,7 @@ const addressSchema = zod.object({
     .min(1, "Phone number is required")
     .regex(
       /^(010|011|012|015)\d{8}$/,
-      "Please enter a valid Egyptian phone number (e.g., 01012345678)"
+      "Please enter a valid Egyptian phone number (e.g., 01012345678)",
     ),
   details: zod
     .string()
@@ -31,15 +32,29 @@ const addressSchema = zod.object({
     .min(1, "City is required")
     .refine(
       (city) => isValidEgyptianCity(city),
-      "Please enter a valid Egyptian city"
+      "Please enter a valid Egyptian city",
     ),
 });
 
 type AddressFormData = zod.infer<typeof addressSchema>;
 
 export default function AddAddress() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [showRetry, setShowRetry] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const router = useRouter();
 
   const {
     register,
@@ -50,17 +65,37 @@ export default function AddAddress() {
   });
 
   async function onSubmit(data: AddressFormData) {
+    if (!isOnline) {
+      toast.error("You are offline. Your draft is saved.");
+      return;
+    }
+
+    setIsLoading(true);
+    setShowRetry(false);
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+      toast.error("Request taking too long");
+      setShowRetry(true);
+    }, 15000);
     try {
       setIsLoading(true);
 
-      const response = await addAddressAction(data.details, data.phone, data.city);
+      const response = await addAddressAction(
+        data.details,
+        data.phone,
+        data.city,
+      );
+
+      clearTimeout(timeout);
 
       if (response.status === "error") {
         toast.error(response.message || "Failed to add address");
+        setShowRetry(true);
         return;
       }
 
       if (response.status === "success") {
+        sessionStorage.removeItem("address_draft");
         toast.success("Address added successfully!");
 
         setTimeout(() => {
@@ -70,6 +105,8 @@ export default function AddAddress() {
     } catch (error: any) {
       console.error("Add address error:", error);
       toast.error(error?.message || "An unexpected error occurred");
+      toast.error("Network error");
+      setShowRetry(true);
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +115,7 @@ export default function AddAddress() {
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
       <div className="text-center mb-8 space-y-4">
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
           Add New Address
         </h1>
         <p className="text-muted-foreground">
@@ -126,7 +163,7 @@ export default function AddAddress() {
                   <option key={`${gov}-${city}`} value={city}>
                     {city} ({gov})
                   </option>
-                ))
+                )),
               )}
             </select>
             {errors.city && (
@@ -161,13 +198,23 @@ export default function AddAddress() {
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isOnline}
               className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:shadow-glow transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {isLoading ? (
+              {!isOnline ? (
+                <span className="flex items-center gap-2">
+                  <WifiOff className="w-5 h-5" />
+                  Offline
+                </span>
+              ) : isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Saving...
+                </span>
+              ) : showRetry ? (
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5" />
+                  Retry
                 </span>
               ) : (
                 "Save Address"

@@ -5,7 +5,6 @@ const protectedRoutes = [
   "/profile-page",
   "/cart",
   "/change-password-page",
-  "/reset-password-page",
   "/edit-profile-page",
   "/allorders",
   "/add-address-page",

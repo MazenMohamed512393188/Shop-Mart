@@ -3,6 +3,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function Logout() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function Logout() {
     router.refresh();
     
     // Then redirect to home
+    toast.success("You logged out")
     router.push("/");
   };
 

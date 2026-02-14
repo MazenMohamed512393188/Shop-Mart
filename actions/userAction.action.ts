@@ -9,10 +9,7 @@ export async function getLoggedUserAction() {
   const session = await getServerSession(authOptions);
 
   if (!session?.token) {
-    return {
-      message: "Not authenticated",
-      data: null,
-    };
+    return { message: "Not authenticated", data: null };
   }
 
   try {
@@ -22,39 +19,48 @@ export async function getLoggedUserAction() {
         token: session.token as string,
         "Content-Type": "application/json",
       },
+      // ✅ Timeout
+      signal: AbortSignal.timeout(10000),
     });
 
     const data: GetUserResponse = await response.json();
 
     if (!response.ok) {
-      return {
-        message: data.message || "Failed to fetch user data",
-        data: null,
-      };
+      if (response.status === 401 || response.status === 403) {
+        return { message: "Session expired. Please login again.", data: null };
+      }
+      if (response.status >= 500) {
+        return { message: "Server error. Please try again.", data: null };
+      }
+      return { message: data.message || "Failed to fetch user data", data: null };
     }
 
-    return {
-      message: "success",
-      data: data.data,
-    };
-  } catch (error) {
+    return { message: "success", data: data.data };
+    
+  } catch (error: any) {
     console.error("Get user error:", error);
-    return {
-      message: "Network error. Please try again.",
-      data: null,
-    };
+    
+    // ✅ Error classification
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      return { message: "Request timeout. Please try again.", data: null };
+    }
+    if (error.message?.includes('fetch') || error.message?.includes('network')) {
+      return { message: "Network error. Please check your connection.", data: null };
+    }
+    return { message: "An unexpected error occurred", data: null };
   }
 }
 
-// Update logged in user data
 export async function updateLoggedUserAction(name: string, email: string, phone: string) {
   const session = await getServerSession(authOptions);
 
   if (!session?.token) {
-    return {
-      message: "Not authenticated",
-      data: null,
-    };
+    return { message: "Not authenticated", data: null };
+  }
+
+  // ✅ Input validation
+  if (!name || !email || !phone) {
+    return { message: "All fields are required", data: null };
   }
 
   try {
@@ -64,34 +70,45 @@ export async function updateLoggedUserAction(name: string, email: string, phone:
         token: session.token as string,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        name,
-        email,
-        phone,
-      }),
+      body: JSON.stringify({ name, email, phone }),
+      // ✅ Timeout
+      signal: AbortSignal.timeout(10000),
     });
 
     const data: UpdateUserResponse = await response.json();
 
     if (!response.ok) {
-      return {
-        message: data.message || "Failed to update user data",
-        data: null,
-      };
+      // ✅ Specific errors
+      if (response.status === 409) {
+        return { message: "Email already in use by another account", data: null };
+      }
+      if (response.status === 400) {
+        return { message: data.message || "Invalid data provided", data: null };
+      }
+      if (response.status === 401 || response.status === 403) {
+        return { message: "Session expired. Please login again.", data: null };
+      }
+      if (response.status >= 500) {
+        return { message: "Server error. Please try again.", data: null };
+      }
+      return { message: data.message || "Failed to update profile", data: null };
     }
 
-    // Revalidate profile page to show updated data
-    revalidatePath("/profile");
+    // ✅ Revalidate
+    revalidatePath("/profile-page");
 
-    return {
-      message: "success",
-      data: data.data,
-    };
-  } catch (error) {
+    return { message: "success", data: data.data };
+    
+  } catch (error: any) {
     console.error("Update user error:", error);
-    return {
-      message: "Network error. Please try again.",
-      data: null,
-    };
+    
+    // ✅ Error classification
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      return { message: "Request timeout. Please try again.", data: null };
+    }
+    if (error.message?.includes('fetch') || error.message?.includes('network')) {
+      return { message: "Network error. Please check your connection.", data: null };
+    }
+    return { message: "An unexpected error occurred", data: null };
   }
 }

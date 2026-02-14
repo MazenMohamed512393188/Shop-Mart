@@ -5,16 +5,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { sendRegisterRequest } from "@/actions/registerAction.action";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { schema, RegisterFormData } from "@/Schema/registerSchema";
-import { UserCircle, Mail, Phone, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { UserCircle, Mail, Phone, Lock, Eye, EyeOff, ArrowRight, Loader2, WifiOff, RefreshCw } from "lucide-react";
 
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [showRetry, setShowRetry] = useState(false);
   const router = useRouter();
 
   const {
@@ -25,17 +27,66 @@ export default function Register() {
     resolver: zodResolver(schema),
   });
 
-  async function onSubmit(data: RegisterFormData) {
-    try {
-      setIsLoading(true);
+  // ✅ Online/Offline Detection
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success("Connection restored", { duration: 3000 });
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.error("You are offline. Please check your connection.", {
+        duration: 5000,
+        icon: '📡'
+      });
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    setIsOnline(navigator.onLine);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
-      // Register the user
+  async function onSubmit(data: RegisterFormData) {
+    // ✅ تحقق من الاتصال
+    if (!isOnline) {
+      toast.error("You are offline. Please check your connection.", {
+        duration: 5000,
+        icon: '📡'
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setShowRetry(false);
+    
+    // ✅ Timeout بعد 20 ثانية (Registration قد يأخذ وقت أطول)
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+      toast.error("Request is taking too long. Please try again.", {
+        duration: 6000
+      });
+      setShowRetry(true);
+    }, 20000);
+
+    try {
       const response = await sendRegisterRequest(data);
+      
+      clearTimeout(timeout);
 
       if (response.message === "success" || response.token) {
-        toast.success("Account created successfully!");
+        toast.success("Account created successfully!", {
+          duration: 3000,
+          icon: '✅'
+        });
 
-        // Auto-login after registration
+        // ✅ Auto sign-in
         const signInResponse = await signIn("credentials", {
           email: data.email,
           password: data.password,
@@ -43,16 +94,61 @@ export default function Register() {
         });
 
         if (signInResponse?.ok) {
-          toast.success("Logged in successfully!");
+          toast.success("Logged in successfully!", {
+            duration: 2000
+          });
           router.push("/products");
+          router.refresh();
         } else {
-          // If auto-login fails, redirect to login page
+          // Failed to auto-login, redirect to login page
           router.push("/login");
         }
+      } else {
+        throw new Error(response.message || "Registration failed");
       }
+      
     } catch (error: any) {
+      clearTimeout(timeout);
       console.error("Registration error:", error);
-      toast.error(error?.message || "Registration failed. Please try again.");
+      
+      // ✅ تصنيف الأخطاء
+      const errorMessage = error.message || error.toString();
+      
+      if (!navigator.onLine) {
+        toast.error("Connection lost. Please check your internet.", {
+          duration: 8000,
+          icon: '📡'
+        });
+        setShowRetry(true);
+        
+      } else if (errorMessage.includes('Email already registered') || 
+                 errorMessage.includes('already exists') ||
+                 errorMessage.includes('duplicate')) {
+        toast.error("This email is already registered. Please sign in instead.", {
+          duration: 6000,
+          icon: '📧'
+        });
+        
+      } else if (errorMessage.includes('timeout')) {
+        toast.error("Request timeout. Please try again.", {
+          duration: 6000
+        });
+        setShowRetry(true);
+        
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        toast.error("Network error. Please check your connection.", {
+          duration: 8000,
+          icon: '📡'
+        });
+        setShowRetry(true);
+        
+      } else {
+        toast.error(errorMessage || "Registration failed. Please try again.", {
+          duration: 5000
+        });
+        setShowRetry(true);
+      }
+      
     } finally {
       setIsLoading(false);
     }
@@ -61,12 +157,24 @@ export default function Register() {
   return (
     <div className="flex justify-center items-center min-h-screen px-4 py-8">
       <div className="w-full max-w-md animate-fade-in">
+        {/* ✅ Offline Warning */}
+        {!isOnline && (
+          <div className="mb-4 p-4 bg-warning/10 border border-warning/20 rounded-lg">
+            <div className="flex items-center gap-2 text-warning">
+              <WifiOff className="w-5 h-5" />
+              <p className="text-sm font-medium">
+                You are currently offline. Please check your connection.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center mb-8 space-y-4">
           <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
             <UserCircle className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
             Create Account
           </h1>
           <p className="text-muted-foreground">
@@ -87,7 +195,7 @@ export default function Register() {
                 type="text"
                 {...register("name")}
                 placeholder="Enter your full name"
-                disabled={isLoading}
+                disabled={isLoading || !isOnline}
                 className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background text-foreground focus:border-primary focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               />
               {errors.name && (
@@ -105,7 +213,7 @@ export default function Register() {
                 type="email"
                 {...register("email")}
                 placeholder="Enter your email"
-                disabled={isLoading}
+                disabled={isLoading || !isOnline}
                 className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background text-foreground focus:border-primary focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               />
               {errors.email && (
@@ -123,7 +231,7 @@ export default function Register() {
                 type="tel"
                 {...register("phone")}
                 placeholder="01012345678"
-                disabled={isLoading}
+                disabled={isLoading || !isOnline}
                 className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background text-foreground focus:border-primary focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               />
               {errors.phone && (
@@ -145,13 +253,14 @@ export default function Register() {
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
                   placeholder="Enter your password"
-                  disabled={isLoading}
+                  disabled={isLoading || !isOnline}
                   className="w-full px-4 py-3 pr-12 rounded-lg border-2 border-border bg-background text-foreground focus:border-primary focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  disabled={isLoading || !isOnline}
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -176,13 +285,14 @@ export default function Register() {
                   type={showConfirmPassword ? "text" : "password"}
                   {...register("rePassword")}
                   placeholder="Confirm your password"
-                  disabled={isLoading}
+                  disabled={isLoading || !isOnline}
                   className="w-full px-4 py-3 pr-12 rounded-lg border-2 border-border bg-background text-foreground focus:border-primary focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  disabled={isLoading || !isOnline}
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -199,13 +309,23 @@ export default function Register() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isOnline}
               className="w-full h-12 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:shadow-glow transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 mt-6"
             >
-              {isLoading ? (
+              {!isOnline ? (
+                <span className="flex items-center justify-center gap-2">
+                  <WifiOff className="w-5 h-5" />
+                  Offline
+                </span>
+              ) : isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Creating account...
+                </span>
+              ) : showRetry ? (
+                <span className="flex items-center justify-center gap-2">
+                  <RefreshCw className="w-5 h-5" />
+                  Retry
                 </span>
               ) : (
                 "Create Account"
@@ -229,7 +349,8 @@ export default function Register() {
           <Link href="/login" className="block">
             <button
               type="button"
-              className="w-full h-12 border-2 border-border rounded-lg font-semibold hover:bg-secondary transition-all duration-300 hover:scale-[1.02] group flex items-center justify-center gap-2"
+              disabled={!isOnline}
+              className="w-full h-12 border-2 border-border rounded-lg font-semibold hover:bg-secondary transition-all duration-300 hover:scale-[1.02] group flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Sign In
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

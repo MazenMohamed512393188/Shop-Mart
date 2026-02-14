@@ -1,7 +1,7 @@
 "use client";
 import { changePasswordAction } from "@/actions/changePasswordAction.action";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as zod from "zod";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { WifiOff, RefreshCw } from "lucide-react";
 
 const changePasswordSchema = zod
   .object({
@@ -36,10 +37,24 @@ const changePasswordSchema = zod
 type ChangePasswordFormData = zod.infer<typeof changePasswordSchema>;
 
 export default function ChangePassword() {
+  const [isOnline, setIsOnline] = useState(true);
+  const [showRetry, setShowRetry] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   const router = useRouter();
 
   const {
@@ -74,17 +89,32 @@ export default function ChangePassword() {
   const passwordStrength = getPasswordStrength(password || "");
 
   async function onSubmitPassword(data: ChangePasswordFormData) {
-    try {
-      setIsLoading(true);
+    if (!isOnline) {
+      toast.error("You are offline");
+      return;
+    }
 
+    setIsLoading(true);
+    setShowRetry(false);
+
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+      toast.error("Request taking too long");
+      setShowRetry(true);
+    }, 15000);
+
+    try {
       const response = await changePasswordAction(
         data.currentPassword,
         data.password,
         data.rePassword,
       );
 
+      clearTimeout(timeout);
+
       if (response?.error || response?.message === "error") {
         toast.error(response.error || "Failed to change password");
+        setShowRetry(true);
         return;
       }
 
@@ -92,15 +122,16 @@ export default function ChangePassword() {
         toast.success("Password changed successfully!");
         reset();
 
-        setTimeout(() => {
-          router.push("/profile-page");
-        }, 1000);
-      } else {
-        toast.error("Failed to change password. Please try again.");
+        // ✅ Auto logout after password change
+        setTimeout(async () => {
+          await signOut({ callbackUrl: "/login" });
+        }, 2000);
       }
     } catch (err: any) {
-      console.error("Error changing password:", err);
-      toast.error(err?.message || "An unexpected error occurred");
+      clearTimeout(timeout);
+      console.error("Error:", err);
+      toast.error("Network error");
+      setShowRetry(true);
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +143,7 @@ export default function ChangePassword() {
         <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
           <Lock className="w-8 h-8 text-primary" />
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
           Change Password
         </h1>
         <p className="text-muted-foreground">Update your account password</p>
@@ -246,7 +277,7 @@ export default function ChangePassword() {
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isOnline}
               onClick={() =>
                 signOut({
                   callbackUrl: "/login",
@@ -254,13 +285,23 @@ export default function ChangePassword() {
               }
               className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:shadow-glow transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
+              {!isOnline ? (
+                <span className="flex items-center gap-2">
+                  <WifiOff className="w-5 h-5" />
+                  Offline
+                </span>
+              ) : isLoading ? (
+                <span className="flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Changing...
                 </span>
+              ) : showRetry ? (
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5" />
+                  Retry
+                </span>
               ) : (
-                <span className="flex items-center justify-center gap-2">
+                <span className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5" />
                   Change Password
                 </span>

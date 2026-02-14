@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="space-y-20">
       <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10 dark:from-primary/5 dark:via-background dark:to-accent/5" />
+        <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-background to-accent/10 dark:from-primary/5 dark:via-background dark:to-accent/5" />
         
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse delay-1000" />
@@ -16,7 +16,7 @@ export default function Home() {
             Premium Shopping Experience
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent leading-tight animate-slide-up">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-linear-to-r from-foreground via-primary to-accent bg-clip-text text-transparent leading-tight animate-slide-up">
             Welcome to ShopMart
           </h1>
           
@@ -34,7 +34,7 @@ export default function Home() {
                 Shop Now
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-linear-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
             
             <Link
@@ -64,7 +64,7 @@ export default function Home() {
             
             <div className="group p-8 rounded-2xl bg-card border border-border hover:border-primary hover:shadow-glow transition-all duration-300 hover:-translate-y-2">
               <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <ShieldCheck className="w-8 h-8 text-accent" />
+                <ShieldCheck className="w-8 h-8 text-accent-foreground" />
               </div>
               <h3 className="text-2xl font-bold mb-4 text-foreground">
                 Quality Products
@@ -89,7 +89,7 @@ export default function Home() {
         </div>
       </section>
       
-      <section className="py-20 bg-gradient-to-r from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-3xl">
+      <section className="py-20 bg-linear-to-r from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-3xl">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="space-y-2">
@@ -97,7 +97,7 @@ export default function Home() {
               <p className="text-muted-foreground">Products</p>
             </div>
             <div className="space-y-2">
-              <p className="text-4xl md:text-5xl font-bold text-accent">50K+</p>
+              <p className="text-4xl md:text-5xl font-bold text-accent-foreground">50K+</p>
               <p className="text-muted-foreground">Happy Customers</p>
             </div>
             <div className="space-y-2">
