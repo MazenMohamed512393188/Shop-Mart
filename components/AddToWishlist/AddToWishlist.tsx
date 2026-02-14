@@ -1,5 +1,4 @@
 "use client";
-
 import { Button } from "../ui/button";
 import { Heart, Loader2, WifiOff, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -23,33 +22,36 @@ export default function AddToWishlist({
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [inWishlist, setInWishlist] = useState(isInWishlist);
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, ] = useState(true);
   const [showRetry, setShowRetry] = useState(false);
-  const [lastAction, setLastAction] = useState<'add' | 'remove' | null>(null);
+  const [, setLastAction] = useState<'add' | 'remove' | null>(null);
   const router = useRouter();
 
   // ✅ Online/Offline Detection
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast.success("Connection restored", { duration: 3000 });
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast.error("You are offline", { duration: 5000 });
-    };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    setIsOnline(navigator.onLine);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+  // في كل component
+useEffect(() => {
+  const handleOffline = () => {
+    toast.error("You are offline", {
+      id: 'offline-status', // ✅ Same ID = only one toast
+      duration: 5000
+    });
+  };
+  
+  const handleOnline = () => {
+    toast.success("Connection restored", {
+      id: 'online-status', // ✅ Same ID
+      duration: 3000
+    });
+  };
+  
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+  
+  return () => {
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
+  };
+}, []);
 
   // ✅ تصنيف الأخطاء
   function classifyError(error: any): ErrorType {
@@ -219,7 +221,7 @@ export default function AddToWishlist({
       const pendingAction = sessionStorage.getItem('pending_wishlist_add');
       if (pendingAction) {
         try {
-          const { productId: savedProductId, action } = JSON.parse(pendingAction);
+          const { productId: savedProductId } = JSON.parse(pendingAction);
           if (savedProductId === productId) {
             toast.loading("Retrying...", { duration: 1000 });
             setTimeout(() => {
