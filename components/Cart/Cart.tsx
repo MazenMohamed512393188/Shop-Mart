@@ -76,22 +76,25 @@ const benefits = [
 ];
 
 enum ErrorType {
-  NETWORK = 'network',
-  SERVER = 'server',
-  VALIDATION = 'validation',
-  PAYMENT = 'payment',
-  CART_EMPTY = 'cart_empty',
-  UNKNOWN = 'unknown'
+  NETWORK = "network",
+  SERVER = "server",
+  VALIDATION = "validation",
+  PAYMENT = "payment",
+  CART_EMPTY = "cart_empty",
+  UNKNOWN = "unknown",
 }
 
 // ✅ رسائل خطأ واضحة
 const ERROR_MESSAGES = {
-  [ErrorType.NETWORK]: "Connection lost. Please check your internet and try again.",
-  [ErrorType.SERVER]: "Our servers are experiencing issues. Your cart is saved. Please try again in a few moments.",
+  [ErrorType.NETWORK]:
+    "Connection lost. Please check your internet and try again.",
+  [ErrorType.SERVER]:
+    "Our servers are experiencing issues. Your cart is saved. Please try again in a few moments.",
   [ErrorType.VALIDATION]: "Please check your information and try again.",
-  [ErrorType.PAYMENT]: "Payment service is temporarily unavailable. You can still use Cash on Delivery.",
+  [ErrorType.PAYMENT]:
+    "Payment service is temporarily unavailable. You can still use Cash on Delivery.",
   [ErrorType.CART_EMPTY]: "Your cart is empty. Please add items first.",
-  [ErrorType.UNKNOWN]: "Something went wrong. Please try again."
+  [ErrorType.UNKNOWN]: "Something went wrong. Please try again.",
 };
 
 export default function CartModern({ cartData }: { cartData: CartRes | null }) {
@@ -113,29 +116,29 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     const handleOnline = () => {
       setIsOnline(true);
       toast.success("Connection restored");
-      
+
       // محاولة إعادة الـ action اللي فشل
       if (pendingAction) {
         retryPendingAction();
       }
     };
-    
+
     const handleOffline = () => {
       setIsOnline(false);
       toast.error("You are offline. Please check your connection.", {
-        duration: 8000
+        duration: 8000,
       });
     };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     // تحقق من الحالة الحالية
     setIsOnline(navigator.onLine);
-    
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, [pendingAction]);
 
@@ -143,57 +146,58 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
   function classifyError(error: any): ErrorType {
     // فحص الاتصال بالإنترنت
     if (!navigator.onLine) return ErrorType.NETWORK;
-    
+
     // فحص أخطاء الـ fetch
-    if (error instanceof TypeError || error.message?.includes('fetch')) {
+    if (error instanceof TypeError || error.message?.includes("fetch")) {
       return ErrorType.NETWORK;
     }
-    
+
     // فحص HTTP status codes
     const status = error.response?.status || error.status;
     if (status >= 500) return ErrorType.SERVER;
     if (status >= 400) return ErrorType.VALIDATION;
-    
+
     // فحص أخطاء محددة
     const code = error.code || error.response?.data?.code;
-    if (code === 'CART_NOT_FOUND' || code === 'EMPTY_CART') {
+    if (code === "CART_NOT_FOUND" || code === "EMPTY_CART") {
       return ErrorType.CART_EMPTY;
     }
-    if (code?.includes('PAYMENT') || code?.includes('STRIPE')) {
+    if (code?.includes("PAYMENT") || code?.includes("STRIPE")) {
       return ErrorType.PAYMENT;
     }
-    
+
     return ErrorType.UNKNOWN;
   }
 
   // ✅ عرض الأخطاء بشكل مناسب
-  function handleError(error: any, context: string = '') {
+  function handleError(error: any, context: string = "") {
     console.error(`Error in ${context}:`, error);
-    
+
     const errorType = classifyError(error);
     const message = ERROR_MESSAGES[errorType];
-    
+
     // عرض رسالة الخطأ
     toast.error(message, {
       duration: errorType === ErrorType.NETWORK ? 8000 : 5000,
     });
-    
+
     // معالجة خاصة حسب نوع الخطأ
     switch (errorType) {
       case ErrorType.NETWORK:
         setShowRetryButton(true);
         break;
-        
+
       case ErrorType.CART_EMPTY:
         setCart(null);
         setIsDialogOpen(false);
         router.refresh();
         break;
-        
+
       case ErrorType.PAYMENT:
         // نعرض خيار الدفع Cash
-        toast.info("You can still complete your order with Cash on Delivery", {
-          duration: 6000
+        toast("You can still use Cash on Delivery", {
+          icon: "💡",
+          duration: 6000,
         });
         break;
     }
@@ -202,14 +206,14 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
   // ✅ إعادة المحاولة
   async function retryPendingAction() {
     if (!pendingAction) return;
-    
+
     try {
       await pendingAction.action();
       setPendingAction(null);
       setShowRetryButton(false);
       toast.success("Action completed successfully");
     } catch (error) {
-      handleError(error, 'Retry');
+      handleError(error, "Retry");
     }
   }
 
@@ -222,13 +226,13 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     }
 
     setLoadingId(productId);
-    
+
     try {
       const response: CartRes = await deleteProductAction(productId);
-      
+
       if (response.status === "success") {
         setCart(response);
-        
+
         if (!response.data?.products || response.data.products.length === 0) {
           toast.success("Last item removed from cart");
           router.refresh();
@@ -237,19 +241,17 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
           toast.success("Item removed from cart");
         }
       } else {
-        throw new Error(response.message || 'Failed to delete product');
+        throw new Error(response.message || "Failed to delete product");
       }
-      
     } catch (error) {
-      handleError(error, 'deleteCartProduct');
-      
+      handleError(error, "deleteCartProduct");
+
       // حفظ الـ action للمحاولة لاحقاً
       setPendingAction({
-        type: 'delete',
+        type: "delete",
         productId,
-        action: () => deleteCartProduct(productId)
+        action: () => deleteCartProduct(productId),
       });
-      
     } finally {
       setLoadingId(null);
     }
@@ -263,23 +265,21 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     }
 
     setLoadingId(productId);
-    
+
     try {
       const response: CartRes = await updateCartAction(count, productId);
-      
+
       if (response.status === "success") {
         setCart(response);
         toast.success("Cart updated successfully");
       } else {
-        throw new Error(response.message || 'Failed to update cart');
+        throw new Error(response.message || "Failed to update cart");
       }
-      
     } catch (error) {
-      handleError(error, 'updateCart');
-      
+      handleError(error, "updateCart");
+
       // إرجاع الـ UI للحالة السابقة
       toast.error("Update failed. Please try again.");
-      
     } finally {
       setLoadingId(null);
     }
@@ -298,7 +298,11 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     }
 
     // تحقق من الـ Cart
-    if (!cart?.data?._id || !cart?.data?.products || cart.data.products.length === 0) {
+    if (
+      !cart?.data?._id ||
+      !cart?.data?.products ||
+      cart.data.products.length === 0
+    ) {
       toast.error("Your cart is empty");
       setIsDialogOpen(false);
       router.refresh();
@@ -307,18 +311,20 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
 
     // تحقق من الاتصال
     if (!isOnline) {
-      toast.error("You are offline. Please check your connection before checkout.");
+      toast.error(
+        "You are offline. Please check your connection before checkout.",
+      );
       return;
     }
 
     setIsCheckoutLoading(true);
-    
+
     // ✅ Timeout بعد 30 ثانية
     const timeout = setTimeout(() => {
       setIsCheckoutLoading(false);
       toast.error(
         "Request is taking too long. Please check your connection and try again.",
-        { duration: 8000 }
+        { duration: 8000 },
       );
     }, 30000);
 
@@ -334,46 +340,46 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
 
       if (response.status === "success" || response.statusMsg === "success") {
         if (response.session?.url) {
-          sessionStorage.setItem('payment_in_progress', 'true');
-          
+          sessionStorage.setItem("payment_in_progress", "true");
+
           // حفظ بيانات الـ checkout للـ recovery
-          sessionStorage.setItem('checkout_data', JSON.stringify({
-            cartId: cart.data._id,
-            details,
-            city,
-            phone,
-            timestamp: Date.now()
-          }));
-          
+          sessionStorage.setItem(
+            "checkout_data",
+            JSON.stringify({
+              cartId: cart.data._id,
+              details,
+              city,
+              phone,
+              timestamp: Date.now(),
+            }),
+          );
+
           toast.success("Redirecting to payment...");
           window.location.href = response.session.url;
         } else {
-          throw new Error('Payment URL not found');
+          throw new Error("Payment URL not found");
         }
-        
-      } else if (response.code === 'PAYMENT_SERVICE_UNAVAILABLE') {
+      } else if (response.code === "PAYMENT_SERVICE_UNAVAILABLE") {
         // ✅ Stripe غير متاح
         toast.error(
           "Online payment is temporarily unavailable. You can use Cash on Delivery instead.",
-          { duration: 10000 }
+          { duration: 10000 },
         );
         setIsCheckoutLoading(false);
-        
       } else {
-        throw new Error(response.message || 'Checkout failed');
+        throw new Error(response.message || "Checkout failed");
       }
-      
     } catch (error: any) {
       clearTimeout(timeout);
-      handleError(error, 'handleCheckOut');
-      
+      handleError(error, "handleCheckOut");
+
       // حفظ للمحاولة لاحقاً
       setPendingAction({
-        type: 'checkout',
+        type: "checkout",
         data: { details, city, phone },
-        action: () => handleCheckOut()
+        action: () => handleCheckOut(),
       });
-      
+
       setIsCheckoutLoading(false);
     }
   }
@@ -389,7 +395,11 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
       return;
     }
 
-    if (!cart?.data?._id || !cart?.data?.products || cart.data.products.length === 0) {
+    if (
+      !cart?.data?._id ||
+      !cart?.data?.products ||
+      cart.data.products.length === 0
+    ) {
       toast.error("Your cart is empty");
       setIsDialogOpen(false);
       router.refresh();
@@ -402,7 +412,7 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     }
 
     setIsCashLoading(true);
-    
+
     const timeout = setTimeout(() => {
       setIsCashLoading(false);
       toast.error("Request is taking too long. Please try again.");
@@ -417,32 +427,29 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
         toast.success("Order created successfully!");
         setIsDialogOpen(false);
         router.push("/allorders");
-        
-      } else if (response.code === 'INSUFFICIENT_STOCK') {
+      } else if (response.code === "INSUFFICIENT_STOCK") {
         // ✅ منتج معين out of stock
         toast.error(
-          `${response.productName || 'A product'} is out of stock. Please update your cart.`,
-          { duration: 8000 }
+          `${response.productName || "A product"} is out of stock. Please update your cart.`,
+          { duration: 8000 },
         );
         setIsCashLoading(false);
         setIsDialogOpen(false);
         router.refresh();
-        
       } else {
-        throw new Error(response.message || 'Order creation failed');
+        throw new Error(response.message || "Order creation failed");
       }
-      
     } catch (error: any) {
       clearTimeout(timeout);
-      handleError(error, 'handleCash');
-      
+      handleError(error, "handleCash");
+
       // حفظ للمحاولة لاحقاً
       setPendingAction({
-        type: 'cash',
+        type: "cash",
         data: { details, city, phone },
-        action: () => handleCash()
+        action: () => handleCash(),
       });
-      
+
       setIsCashLoading(false);
     }
   }
@@ -455,25 +462,24 @@ export default function CartModern({ cartData }: { cartData: CartRes | null }) {
     }
 
     setLoadingId("clear");
-    
+
     try {
       const response: CartRes = await clearCartAction();
-      
+
       if (response.message === "success") {
         setCart(null);
         toast.success("Cart cleared successfully");
         router.refresh();
       } else {
-        throw new Error('Failed to clear cart');
+        throw new Error("Failed to clear cart");
       }
-      
     } catch (error) {
-      handleError(error, 'clearCart');
+      handleError(error, "clearCart");
     } finally {
       setLoadingId(null);
     }
   }
-if (!isOnline) {
+  if (!isOnline) {
     return (
       <div className="min-h-screen bg-linear-to-b from-background to-secondary/30">
         <div className="container mx-auto px-4 py-24">
@@ -485,7 +491,7 @@ if (!isOnline) {
             <p className="text-muted-foreground mb-8">
               Please check your internet connection and try again.
             </p>
-            <Button 
+            <Button
               onClick={() => window.location.reload()}
               className="inline-flex items-center gap-2"
             >
@@ -502,24 +508,24 @@ if (!isOnline) {
     return (
       <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
         {/* ✅ Retry Banner */}
-      {showRetryButton && pendingAction && (
-        <div className="bg-warning/10 border-b border-warning/20 py-3">
-          <div className="container mx-auto px-4 flex items-center justify-between">
-            <p className="text-sm text-warning">
-              An action failed. Click retry to try again.
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={retryPendingAction}
-              disabled={!isOnline}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
+        {showRetryButton && pendingAction && (
+          <div className="bg-warning/10 border-b border-warning/20 py-3">
+            <div className="container mx-auto px-4 flex items-center justify-between">
+              <p className="text-sm text-warning">
+                An action failed. Click retry to try again.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={retryPendingAction}
+                disabled={!isOnline}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
         <div className="container mx-auto px-4 py-24">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -564,7 +570,8 @@ if (!isOnline) {
               Shopping Cart
             </h1>
             <p className="text-xl text-muted-foreground dark:text-slate-300 leading-relaxed">
-              {cart.numOfCartItems} {cart.numOfCartItems === 1 ? "item" : "items"} ready for checkout
+              {cart.numOfCartItems}{" "}
+              {cart.numOfCartItems === 1 ? "item" : "items"} ready for checkout
             </p>
           </motion.div>
         </div>
@@ -606,7 +613,9 @@ if (!isOnline) {
                                   {item.product.brand?.name || "No brand"}
                                 </span>
                                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary/50 rounded">
-                                  ⭐ {item.product.ratingsAverage?.toFixed(1) || "N/A"}
+                                  ⭐{" "}
+                                  {item.product.ratingsAverage?.toFixed(1) ||
+                                    "N/A"}
                                 </span>
                               </div>
                             </div>
@@ -727,7 +736,7 @@ if (!isOnline) {
                       <ArrowRight className="w-4 h-4" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent 
+                  <DialogContent
                     className="sm:max-w-sm"
                     onInteractOutside={(e) => {
                       if (isCheckoutLoading || isCashLoading) {
@@ -808,8 +817,8 @@ if (!isOnline) {
                           "Pay with Cash"
                         )}
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="w-full sm:w-auto"
                         onClick={() => setIsDialogOpen(false)}
                         disabled={isCheckoutLoading || isCashLoading}
