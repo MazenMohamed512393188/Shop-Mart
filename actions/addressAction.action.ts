@@ -80,7 +80,6 @@ export async function getAddressesAction() {
         token: session.token as string,
         "Content-Type": "application/json",
       },
-      cache: "no-store",
     });
 
     const data: GetAddressesResponse = await response.json();
