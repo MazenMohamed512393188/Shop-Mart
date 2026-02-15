@@ -1,5 +1,4 @@
 "use server";
-
 import { authOptions } from "./authOptions";
 import { getServerSession } from "next-auth";
 import { WishlistRes } from "@/interfaces/wishlistInterface";
@@ -8,18 +7,15 @@ export async function addToWishlistAction(productId: string) {
   try {
     const session = await getServerSession(authOptions);
 
-    // ✅ التحقق من الـ session
-    if (!session) {
+    if (!session?.token) {
       console.log('No session found - user not authenticated');
       return null;
     }
 
-    // ✅ Validation
     if (!productId || typeof productId !== 'string') {
       throw new Error('Invalid product ID');
     }
 
-    // ✅ API Call مع Error Handling
     const res = await fetch(`${process.env.Base_Url}/wishlist`, {
       method: "POST",
       body: JSON.stringify({ productId }),
@@ -27,11 +23,18 @@ export async function addToWishlistAction(productId: string) {
         token: session.token as string,
         "Content-Type": "application/json",
       },
-      // ✅ Timeout بعد 10 ثواني
       signal: AbortSignal.timeout(10000),
     });
 
-    // ✅ التحقق من الـ response
+    // ✅ Handle duplicate case
+    if (res.status === 409) {
+      // 409 Conflict - Item already in wishlist
+      return {
+        status: 'error',
+        message: 'Product already in wishlist'
+      };
+    }
+
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       
@@ -41,9 +44,17 @@ export async function addToWishlistAction(productId: string) {
         error: errorData
       });
 
-      // إرجاع خطأ واضح حسب الـ status
+      // ✅ Check if backend returns "already exists" message
+      if (errorData.message?.toLowerCase().includes('already') ||
+          errorData.message?.toLowerCase().includes('exist')) {
+        return {
+          status: 'error',
+          message: 'Product already in wishlist'
+        };
+      }
+
       if (res.status === 401 || res.status === 403) {
-        return null; // Session expired
+        return null;
       }
       
       if (res.status === 404) {
@@ -72,7 +83,6 @@ export async function addToWishlistAction(productId: string) {
 
     const data: WishlistRes = await res.json();
     
-    // ✅ التحقق من صحة البيانات المرجعة
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response from server');
     }
@@ -80,7 +90,6 @@ export async function addToWishlistAction(productId: string) {
     return data;
     
   } catch (error: any) {
-    // ✅ معالجة أنواع الأخطاء المختلفة
     if (error.name === 'AbortError') {
       console.error('Request timeout - add to wishlist');
       return {
