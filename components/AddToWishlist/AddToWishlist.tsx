@@ -101,7 +101,6 @@ useEffect(() => {
       });
       setShowRetry(true);
       // Rollback
-      setInWishlist(previousState);
     }, 15000);
 
     try {

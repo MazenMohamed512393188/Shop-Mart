@@ -2,12 +2,19 @@
 import { WishlistRes } from "@/interfaces/wishlistInterface";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import AddToCart from "../AddToCart/AddToCart";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { Loader2, X, Heart, ShoppingBag, Star } from "lucide-react";
+import { Loader2, X, Heart, ShoppingBag, Star, WifiOff, RefreshCw } from "lucide-react";
 import { removeFromWishlistAction } from "@/actions/Removefromwishlistaction.action";
+
+enum ErrorType {
+  NETWORK = 'network',
+  SERVER = 'server',
+  AUTH = 'auth',
+  UNKNOWN = 'unknown'
+}
 
 export default function WishList({
   wishlistData,
@@ -15,7 +22,51 @@ export default function WishList({
   wishlistData: WishlistRes | null;
 }) {
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [showRetry, setShowRetry] = useState<string | null>(null);
   const router = useRouter();
+
+  // ✅ Online/Offline Detection
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success("Connection restored", {
+        id: 'online-status',
+        duration: 3000
+      });
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Set initial state
+    setIsOnline(navigator.onLine);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  function classifyError(error: any): ErrorType {
+    if (!navigator.onLine) return ErrorType.NETWORK;
+    
+    if (error instanceof TypeError || 
+        error.message?.includes('fetch') ||
+        error.message?.includes('network')) {
+      return ErrorType.NETWORK;
+    }
+    
+    const status = error.response?.status || error.status;
+    if (status === 401 || status === 403) return ErrorType.AUTH;
+    if (status >= 500) return ErrorType.SERVER;
+    
+    return ErrorType.UNKNOWN;
+  }
 
   const formatCurrency = (
     amount: number,
@@ -29,29 +80,150 @@ export default function WishList({
   };
 
   const handleRemoveFromWishlist = async (productId: string) => {
+    // ✅ Check online status first
+    if (!isOnline) {
+      toast.error("You are offline. Please check your connection before removing items.", {
+        duration: 5000,
+        icon: '📡'
+      });
+      return;
+    }
+    
     setRemovingId(productId);
+    setShowRetry(null);
+    
+    // ✅ Timeout بعد 15 ثانية
+    const timeout = setTimeout(() => {
+      setRemovingId(null);
+      toast.error("Request is taking too long. Please try again.", {
+        duration: 6000
+      });
+      setShowRetry(productId);
+    }, 15000);
+
     try {
       const result = await removeFromWishlistAction(productId);
+      
+      clearTimeout(timeout);
+
       if (result) {
-        toast.success("Removed from wishlist");
+        toast.success("Removed from wishlist", {
+          duration: 3000,
+          icon: '💔'
+        });
         router.refresh();
+      } else {
+        throw new Error('Failed to remove from wishlist');
       }
-    } catch (error) {
-      toast.error("Failed to remove from wishlist");
-      console.error(error);
+    } catch (error: any) {
+      clearTimeout(timeout);
+      
+      const errorType = classifyError(error);
+      
+      console.error("Error removing from wishlist:", error);
+      
+      // ✅ معالجة الأخطاء حسب النوع
+      switch (errorType) {
+        case ErrorType.NETWORK:
+          toast.error(
+            "Connection lost. Please check your internet and try again.",
+            { 
+              duration: 8000,
+              icon: '📡'
+            }
+          );
+          setShowRetry(productId);
+          
+          // حفظ للمحاولة لاحقاً
+          sessionStorage.setItem('pending_wishlist_remove', JSON.stringify({
+            productId,
+            timestamp: Date.now()
+          }));
+          break;
+          
+        case ErrorType.SERVER:
+          toast.error(
+            "Server is experiencing issues. Please try again in a moment.",
+            { 
+              duration: 6000,
+              icon: '⚠️'
+            }
+          );
+          setShowRetry(productId);
+          break;
+          
+        case ErrorType.AUTH:
+          toast.error("Session expired. Please login again.", {
+            duration: 5000,
+            icon: '🔐'
+          });
+          router.push("/login");
+          break;
+          
+        default:
+          toast.error(
+            error.message || "Failed to remove from wishlist. Please try again.",
+            { 
+              duration: 5000,
+              icon: '❌'
+            }
+          );
+          setShowRetry(productId);
+      }
     } finally {
       setRemovingId(null);
     }
   };
 
+  // ✅ Auto-retry عند رجوع النت
+  useEffect(() => {
+    if (isOnline) {
+      const pending = sessionStorage.getItem('pending_wishlist_remove');
+      if (pending) {
+        try {
+          const { productId, timestamp } = JSON.parse(pending);
+          // Only retry if less than 5 minutes old
+          if (Date.now() - timestamp < 5 * 60 * 1000) {
+            toast.loading("Retrying remove from wishlist...", { duration: 1000 });
+            setTimeout(() => {
+              handleRemoveFromWishlist(productId);
+              sessionStorage.removeItem('pending_wishlist_remove');
+            }, 1000);
+          } else {
+            sessionStorage.removeItem('pending_wishlist_remove');
+          }
+        } catch (e) {
+          console.error('Error parsing pending remove:', e);
+        }
+      }
+    }
+  }, [isOnline]);
+
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+      {/* ✅ Offline Warning Banner */}
+      {!isOnline && (
+        <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
+          <div className="flex items-center gap-3">
+            <WifiOff className="w-5 h-5 text-warning" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-warning">
+                You are currently offline
+              </p>
+              <p className="text-xs text-warning/80">
+                You cannot remove items from wishlist while offline. Reconnect to continue.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3 mb-4">
           <Heart className="w-12 h-12 text-destructive fill-destructive" />
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-destructive to-primary bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-destructive to-primary bg-clip-text text-transparent">
           My Wishlist
         </h1>
         <p className="text-muted-foreground">
@@ -66,14 +238,19 @@ export default function WishList({
               key={item.id}
               className="group relative glass rounded-2xl overflow-hidden hover:shadow-glow transition-all duration-300 hover:-translate-y-1"
             >
-              {/* Remove Button */}
+              {/* ✅ Remove Button with offline check */}
               <button
                 onClick={() => handleRemoveFromWishlist(item.id)}
-                disabled={removingId === item.id}
-                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all duration-300 disabled:opacity-50 shadow-lg"
+                disabled={removingId === item.id || !isOnline}
+                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                title={!isOnline ? "Offline - Cannot remove" : "Remove from wishlist"}
               >
                 {removingId === item.id ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
+                ) : showRetry === item.id ? (
+                  <RefreshCw className="w-5 h-5" />
+                ) : !isOnline ? (
+                  <WifiOff className="w-5 h-5" />
                 ) : (
                   <X className="w-5 h-5" />
                 )}
@@ -100,7 +277,7 @@ export default function WishList({
                   )}
 
                   {/* Quick View Badge */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background/90 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-background/90 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                     <p className="text-xs text-muted-foreground">Click to view details</p>
                   </div>
                 </div>
@@ -120,7 +297,7 @@ export default function WishList({
                     {item.brand.name}
                   </p>
 
-                  {/* Rating (if available) */}
+                  {/* Rating */}
                   {item.ratingsAverage && (
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-warning text-warning" />
@@ -141,7 +318,7 @@ export default function WishList({
                   </p>
                 </div>
 
-                {/* Add to Cart Button */}
+                {/* Add to Cart Button - already has its own offline handling */}
                 <AddToCart productId={item.id} />
               </div>
             </div>
