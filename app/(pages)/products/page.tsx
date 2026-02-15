@@ -32,7 +32,6 @@ async function ProductsList() {
   const [productsResponse, wishlistData] = await Promise.all([
     // Fetch products
     fetch(`${process.env.Base_Url}/products`, {
-      cache: 'no-store' // Or use: next: { revalidate: 60 }
     }),
     
     // Fetch wishlist (only if user is logged in)
@@ -42,7 +41,6 @@ async function ProductsList() {
             token: session.token as string,
             "Content-Type": "application/json",
           },
-          cache: 'no-store'
         })
           .then(res => res.ok ? res.json() : { data: [] })
           .catch(err => {
