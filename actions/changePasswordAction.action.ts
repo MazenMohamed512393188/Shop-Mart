@@ -22,6 +22,23 @@ export async function changePasswordAction(
     return { error: "New passwords do not match", message: "error" };
   }
 
+  // ✅ FIX 5: التحقق من أن الباسورد الجديد مختلف عن القديم
+  if (currentPassword === password) {
+    return { 
+      error: "New password must be different from current password", 
+      message: "error" 
+    };
+  }
+
+  // ✅ FIX 6: التحقق من قوة الباسورد (server-side validation)
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{6,}$/;
+  if (!passwordRegex.test(password)) {
+    return {
+      error: "Password must contain at least one uppercase, lowercase, number and special character",
+      message: "error"
+    };
+  }
+
   try {
     const res = await fetch(`${process.env.Base_Url}/users/changeMyPassword`, {
       method: "PUT",
@@ -50,7 +67,16 @@ export async function changePasswordAction(
       return { error: data.message || data.errors?.msg || "Failed to change password", message: "error" };
     }
 
-    return data;
+    // ✅ FIX 7: التأكد من وجود token جديد أو رسالة نجاح
+    if (data.message === "success" || data.token) {
+      return { 
+        message: "success", 
+        token: data.token,
+        // يمكن إرجاع بيانات إضافية إذا لزم الأمر
+      };
+    }
+
+    return { error: "Unexpected response from server", message: "error" };
     
   } catch (error: any) {
     console.error("Change password error:", error);

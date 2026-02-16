@@ -32,6 +32,11 @@ const changePasswordSchema = zod
   .refine((data) => data.password === data.rePassword, {
     message: "Passwords don't match",
     path: ["rePassword"],
+  })
+  // ✅ FIX 1: التأكد من أن الباسورد الجديد مختلف عن القديم
+  .refine((data) => data.currentPassword !== data.password, {
+    message: "New password must be different from current password",
+    path: ["password"],
   });
 
 type ChangePasswordFormData = zod.infer<typeof changePasswordSchema>;
@@ -88,6 +93,7 @@ export default function ChangePassword() {
 
   const passwordStrength = getPasswordStrength(password || "");
 
+  // ✅ FIX 2: إزالة signOut من onClick ووضعه فقط بعد النجاح
   async function onSubmitPassword(data: ChangePasswordFormData) {
     if (!isOnline) {
       toast.error("You are offline");
@@ -115,24 +121,24 @@ export default function ChangePassword() {
       if (response?.error || response?.message === "error") {
         toast.error(response.error || "Failed to change password");
         setShowRetry(true);
+        setIsLoading(false);
         return;
       }
 
       if (response?.message === "success" || response?.token) {
-        toast.success("Password changed successfully!");
+        toast.success("Password changed successfully! Redirecting to login...");
         reset();
 
-        // ✅ Auto logout after password change
+        // ✅ FIX 3: تسجيل الخروج فقط بعد النجاح
         setTimeout(async () => {
-          await signOut({ callbackUrl: "/login" });
+          await signOut({ callbackUrl: "/login", redirect: true });
         }, 2000);
       }
     } catch (err: any) {
       clearTimeout(timeout);
       console.error("Error:", err);
-      toast.error("Network error");
+      toast.error("Network error. Please try again.");
       setShowRetry(true);
-    } finally {
       setIsLoading(false);
     }
   }
@@ -275,33 +281,29 @@ export default function ChangePassword() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            {/* ✅ FIX 4: إزالة onClick من الزر تمامًا */}
             <button
               type="submit"
               disabled={isLoading || !isOnline}
-              onClick={() =>
-                signOut({
-                  callbackUrl: "/login",
-                })
-              }
               className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:shadow-glow transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {!isOnline ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   <WifiOff className="w-5 h-5" />
                   Offline
                 </span>
               ) : isLoading ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Changing...
                 </span>
               ) : showRetry ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   <RefreshCw className="w-5 h-5" />
                   Retry
                 </span>
               ) : (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   <CheckCircle2 className="w-5 h-5" />
                   Change Password
                 </span>
@@ -345,6 +347,10 @@ export default function ChangePassword() {
           <li className="flex items-start gap-2">
             <span className="text-primary mt-0.5">•</span>
             <span>One special character (@$!%*?&#)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-primary mt-0.5">•</span>
+            <span className="font-semibold text-primary">Must be different from current password</span>
           </li>
         </ul>
       </div>
