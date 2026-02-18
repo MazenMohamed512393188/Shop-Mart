@@ -18,6 +18,7 @@ import { Wishlist } from "@/interfaces/wishlistInterface";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
+import { API_ENDPOINTS, env } from "@/lib/env";
 
 const formatCurrency = (amount: number, currency = "EGP", locale = "en-US") => {
   return new Intl.NumberFormat(locale, {
@@ -49,7 +50,7 @@ const ProductSkeleton = () => (
 );
 
 // Error boundary fallback
-const ErrorState = ({ onRetry }: { onRetry: () => void }) => (
+const ErrorState = ({ onRetry, message }: { onRetry: () => void; message?: string }) => (
   <div className="min-h-[60vh] flex items-center justify-center p-4">
     <div className="text-center max-w-md mx-auto p-8 space-y-6">
       <div className="relative mx-auto w-24 h-24">
@@ -61,11 +62,20 @@ const ErrorState = ({ onRetry }: { onRetry: () => void }) => (
       
       <div className="space-y-2">
         <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-          Connection Lost
+          Unable to Load Products
         </h2>
         <p className="text-muted-foreground text-sm md:text-base">
-          We couldn't load the products. Please check your internet connection and try again.
+          {message || "We couldn't load the products. Please check your internet connection and try again."}
         </p>
+        {env.isDevelopment && (
+          <details className="mt-4 text-left text-xs text-muted-foreground bg-muted p-3 rounded">
+            <summary className="cursor-pointer font-medium">Developer Info</summary>
+            <div className="mt-2 space-y-1">
+              <p>API URL: {env.API_URL}</p>
+              <p>Check your .env.local file and verify NEXT_PUBLIC_BASE_URL is set correctly.</p>
+            </div>
+          </details>
+        )}
       </div>
       
       <Button 
@@ -141,22 +151,32 @@ export default function Products() {
       
       // Create abort controller with timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15s for slower connections
       
-      const productsPromise = fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/products?page=${page}&limit=${itemsPerPage}`,
-        { signal: controller.signal }
-      );
+      // Use centralized API endpoints
+      const productsUrl = API_ENDPOINTS.products(page, itemsPerPage);
+      const wishlistUrl = API_ENDPOINTS.wishlist();
+      
+      const productsPromise = fetch(productsUrl, { 
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       const wishlistPromise = session?.token
-        ? fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/wishlist`, {
+        ? fetch(wishlistUrl, {
             headers: {
               token: session.token as string,
               "Content-Type": "application/json",
             },
+            signal: controller.signal,
           })
             .then(res => res.ok ? res.json() : { data: [] })
-            .catch(() => ({ data: [] }))
+            .catch((err) => {
+              console.warn('Wishlist fetch failed:', err);
+              return { data: [] };
+            })
         : Promise.resolve({ data: [] });
 
       const [productsResponse, wishlistData] = await Promise.all([
@@ -167,7 +187,10 @@ export default function Products() {
       clearTimeout(timeoutId);
 
       if (!productsResponse.ok) {
-        throw new Error(`HTTP Error: ${productsResponse.status}`);
+        const errorText = await productsResponse.text();
+        throw new Error(
+          `HTTP ${productsResponse.status}: ${productsResponse.statusText}\n${errorText}`
+        );
       }
 
       const productsData: ProductsApiResponse = await productsResponse.json();
@@ -247,7 +270,7 @@ export default function Products() {
 
   // Error state
   if (error && !isLoading) {
-    return <ErrorState onRetry={handleRetry} />;
+    return <ErrorState onRetry={handleRetry} message={error} />;
   }
 
   // Loading state
