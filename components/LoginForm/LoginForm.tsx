@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -227,7 +226,7 @@ export function LoginForm() {
           <div className="flex justify-end">
             <Link
               href="/reset-password-page"
-              className="text-sm text-primary hover:text-accent transition-colors"
+              className="text-sm text-primary dark:hover:text-accent-foreground hover:text-gray-300 transition-colors"
             >
               Forgot password?
             </Link>
@@ -261,17 +260,6 @@ export function LoginForm() {
                 </span>
               )}
             </Button>
-
-            <Link href="/reset-password-page" className="block">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isLoading || !isOnline}
-                className="w-full h-12 font-semibold text-base hover:bg-secondary transition-all duration-300"
-              >
-                Reset Password
-              </Button>
-            </Link>
           </div>
         </form>
 
