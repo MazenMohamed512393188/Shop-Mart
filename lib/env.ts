@@ -107,7 +107,7 @@ export const API_ENDPOINTS = {
   products: (page = 1, limit = 20) => 
     apiUrl(`products?page=${page}&limit=${limit}`),
   
-  productDetails: (id: string) => 
+  productDetails: (id: any) => 
     apiUrl(`products/${id}`),
   
   wishlist: () => 
