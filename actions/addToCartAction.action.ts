@@ -3,10 +3,12 @@
 import { CartRes } from "@/interfaces/cartInterface";
 import { authOptions } from "./authOptions";
 import { getServerSession } from "next-auth";
+import { API_ENDPOINTS } from "@/lib/env";
 
 export async function addToCartAction(productId: string) {
   try {
     const session = await getServerSession(authOptions);
+    const cartUrl = API_ENDPOINTS.cart();
 
     // ✅ التحقق من الـ session
     if (!session) {
@@ -20,7 +22,7 @@ export async function addToCartAction(productId: string) {
     }
 
     // ✅ API Call مع Error Handling
-    const res = await fetch(`${process.env.Base_Url}/cart`, {
+    const res = await fetch(cartUrl, {
       method: "POST",
       body: JSON.stringify({ productId }),
       headers: {

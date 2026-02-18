@@ -12,6 +12,7 @@ import AddToCart from "@/components/AddToCart/AddToCart";
 import AddToWishlist from "@/components/AddToWishlist/AddToWishlist";
 import { Suspense } from "react";
 import { ProductsApiResponse } from "@/interfaces/productInterface";
+import { API_ENDPOINTS } from "@/lib/env";
 
 const formatCurrency = (amount: number, currency = "EGP", locale = "en-US") => {
   return new Intl.NumberFormat(locale, {
@@ -25,7 +26,8 @@ interface Params {
 }
 
 async function BrandInfo({ brandId }: { brandId: string }) {
-  const response = await fetch(`${process.env.Base_Url}/brands/${brandId}`, {
+  const brandUrl = API_ENDPOINTS.brandDetails(brandId);
+  const response = await fetch(brandUrl, {
     next: { revalidate: 60 },
   });
 
@@ -87,8 +89,9 @@ async function BrandInfo({ brandId }: { brandId: string }) {
 }
 
 async function BrandProducts({ brandId }: { brandId: string }) {
+  const BrandProducts = API_ENDPOINTS.BrandProducts(brandId);
   const response = await fetch(
-    `${process.env.Base_Url}/products?brand=${brandId}`,
+    BrandProducts,
     { next: { revalidate: 60 } },
   );
 

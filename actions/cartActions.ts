@@ -1,14 +1,16 @@
 "use server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "./authOptions";
+import { API_ENDPOINTS } from "@/lib/env";
 
 
 
 export async function deleteProductAction(productId: string) {
 
     const session = await getServerSession(authOptions);
+    const cartActionUrl = API_ENDPOINTS.cartAction(productId);
 
-    const response = await fetch(`${process.env.Base_Url}/cart/${productId}`, {
+    const response = await fetch(cartActionUrl, {
         method: "DELETE",
         headers: {
             token: session?.token as string,
@@ -23,8 +25,9 @@ export async function deleteProductAction(productId: string) {
 export async function clearCartAction() {
 
     const session = await getServerSession(authOptions);
+    const cartUrl = API_ENDPOINTS.cart();
 
-    const response = await fetch(`${process.env.Base_Url}/cart`, {
+    const response = await fetch(cartUrl, {
         method: "DELETE",
         headers: {
             token: session?.token as string,
@@ -39,8 +42,9 @@ export async function clearCartAction() {
 export async function updateCartAction(count: number, productId: string) {
 
     const session = await getServerSession(authOptions);
+    const cartActionUrl = API_ENDPOINTS.cartAction(productId);
 
-    const response = await fetch(`${process.env.Base_Url}/cart/${productId}`, {
+    const response = await fetch(cartActionUrl, {
         method: "PUT",
         headers: {
             token: session?.token as string,

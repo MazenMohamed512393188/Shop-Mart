@@ -3,9 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { Categories } from "@/interfaces/categoryInterface";
 import { Grid3x3, ArrowRight } from "lucide-react";
+import { API_ENDPOINTS } from "@/lib/env";
 
 export default async function CategoriesPage() {
-  const response = await fetch(`${process.env.Base_Url}/categories`, {
+  const categoriesUrl = API_ENDPOINTS.categories();
+  const response = await fetch(categoriesUrl, {
     headers: {
       "content-type": "application/json",
     },

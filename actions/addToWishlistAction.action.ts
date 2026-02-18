@@ -2,10 +2,12 @@
 import { authOptions } from "./authOptions";
 import { getServerSession } from "next-auth";
 import { WishlistRes } from "@/interfaces/wishlistInterface";
+import { API_ENDPOINTS } from "@/lib/env";
 
 export async function addToWishlistAction(productId: string) {
   try {
     const session = await getServerSession(authOptions);
+    const wishlistUrl = API_ENDPOINTS.wishlist();
 
     if (!session?.token) {
       console.log('No session found - user not authenticated');
@@ -16,7 +18,7 @@ export async function addToWishlistAction(productId: string) {
       throw new Error('Invalid product ID');
     }
 
-    const res = await fetch(`${process.env.Base_Url}/wishlist`, {
+    const res = await fetch(wishlistUrl, {
       method: "POST",
       body: JSON.stringify({ productId }),
       headers: {

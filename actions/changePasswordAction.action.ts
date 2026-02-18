@@ -1,4 +1,5 @@
 "use server";
+import { API_ENDPOINTS } from "@/lib/env";
 import { authOptions } from "./authOptions";
 import { getServerSession } from "next-auth";
 
@@ -8,6 +9,7 @@ export async function changePasswordAction(
   rePassword: string
 ) {
   const session = await getServerSession(authOptions);
+  const changePasswordUrl = API_ENDPOINTS.changePassword();
 
   if (!session?.token) {
     return { error: "Not authenticated", message: "error" };
@@ -40,7 +42,7 @@ export async function changePasswordAction(
   }
 
   try {
-    const res = await fetch(`${process.env.Base_Url}/users/changeMyPassword`, {
+    const res = await fetch(changePasswordUrl, {
       method: "PUT",
       headers: {
         token: session.token as string,

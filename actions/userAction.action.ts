@@ -3,16 +3,18 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "./authOptions";
 import { revalidatePath } from "next/cache";
 import { GetUserResponse, UpdateUserResponse } from "@/interfaces/userInterface";
+import { API_ENDPOINTS } from "@/lib/env";
 
 export async function getLoggedUserAction() {
   const session = await getServerSession(authOptions);
+  const getUser = API_ENDPOINTS.getUser();
 
   if (!session?.token) {
     return { message: "Not authenticated", data: null };
   }
 
   try {
-    const response = await fetch(`${process.env.Base_Url}/users/getMe`, {
+    const response = await fetch(getUser, {
       method: "GET",
       headers: {
         token: session.token as string,
@@ -52,6 +54,7 @@ export async function getLoggedUserAction() {
 
 export async function updateLoggedUserAction(name: string, email: string, phone: string) {
   const session = await getServerSession(authOptions);
+  const updateUser = API_ENDPOINTS.updateUser();
 
   if (!session?.token) {
     return { message: "Not authenticated", data: null };
@@ -63,7 +66,7 @@ export async function updateLoggedUserAction(name: string, email: string, phone:
   }
 
   try {
-    const response = await fetch(`${process.env.Base_Url}/users/updateMe`, {
+    const response = await fetch(updateUser, {
       method: "PUT",
       headers: {
         token: session.token as string,

@@ -1,19 +1,20 @@
 "use server"
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "./authOptions";
 import { revalidatePath } from "next/cache";
+import { API_ENDPOINTS } from "@/lib/env";
 
 export async function checkOutAction(cartId : string , details : string , city : string , phone : string ) {
 
     const session = await getServerSession(authOptions);
+    const onlinePaymentUrl =  API_ENDPOINTS.onlinePayment();
 
     const shippingAddress = {
         details,
         city,
         phone
     }
-    const response = await fetch(`${process.env.Base_Url}/orders/checkout-session/${cartId}?url=${process.env.LOCALHOST}`, {
+    const response = await fetch(`${onlinePaymentUrl}/${cartId}?url=${process.env.LOCALHOST}`, {
         method: "POST",
         headers: {
             token: session?.token as string,
@@ -31,6 +32,7 @@ export async function checkOutAction(cartId : string , details : string , city :
 export async function cashAction(cartId : string , details : string , city : string , phone : string ) {
 
     const session = await getServerSession(authOptions);
+    const cashPaymentUrl =  API_ENDPOINTS.cashPayment(cartId);
 
     const shippingAddress = {
         details,
@@ -38,7 +40,7 @@ export async function cashAction(cartId : string , details : string , city : str
         phone
     }
     
-    const response = await fetch(`${process.env.Base_Url}/orders/${cartId}`, {
+    const response = await fetch(cashPaymentUrl, {
         method: "POST",
         headers: {
             token: session?.token as string,

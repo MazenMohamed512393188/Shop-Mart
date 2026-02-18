@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "./authOptions";
 import { revalidatePath } from "next/cache";
 import { AddAddressResponse, GetAddressesResponse } from "@/interfaces/addressInterface";
+import { API_ENDPOINTS } from "@/lib/env";
 
 
 export async function addAddressAction(
@@ -12,6 +13,7 @@ export async function addAddressAction(
   city: string
 ) {
   const session = await getServerSession(authOptions);
+  const addressUrl = API_ENDPOINTS.address();
 
   if (!session?.token) {
     return {
@@ -21,7 +23,7 @@ export async function addAddressAction(
   }
 
   try {
-    const response = await fetch(`${process.env.Base_Url}/addresses`, {
+    const response = await fetch(addressUrl, {
       method: "POST",
       headers: {
         token: session.token as string,
@@ -65,6 +67,7 @@ export async function addAddressAction(
 
 export async function getAddressesAction() {
   const session = await getServerSession(authOptions);
+  const addressUrl = API_ENDPOINTS.address();
 
   if (!session?.token) {
     return {
@@ -75,7 +78,7 @@ export async function getAddressesAction() {
   }
 
   try {
-    const response = await fetch(`${process.env.Base_Url}/addresses`, {
+    const response = await fetch(addressUrl, {
       headers: {
         token: session.token as string,
         "Content-Type": "application/json",
@@ -108,6 +111,7 @@ export async function getAddressesAction() {
 
 export async function deleteAddressAction(addressId: string) {
   const session = await getServerSession(authOptions);
+  const deleteAddress = API_ENDPOINTS.deleteAddress(addressId);
 
   if (!session?.token) {
     return {
@@ -118,7 +122,7 @@ export async function deleteAddressAction(addressId: string) {
 
   try {
     const response = await fetch(
-      `${process.env.Base_Url}/addresses/${addressId}`,
+      deleteAddress,
       {
         method: "DELETE",
         headers: {

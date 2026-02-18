@@ -1,9 +1,11 @@
 import { Brands } from "@/interfaces/brandInterface";
+import { API_ENDPOINTS } from "@/lib/env";
 import Image from "next/image";
 import Link from "next/link";
 
 export default async function BrandsModern() {
-  const response = await fetch(`${process.env.Base_Url}/brands`, {
+  const brandsUrl = API_ENDPOINTS.brands();
+  const response = await fetch(brandsUrl, {
     headers: {
       "content-type": "application/json",
     },
@@ -18,11 +20,11 @@ export default async function BrandsModern() {
   const brands: Brands[] = data.data || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
+    <div className="min-h-screen bg-linear-to-b from-background to-secondary/30 dark:from-slate-900 dark:to-slate-800/30">
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10" />
+        <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-accent/10 to-primary/10" />
         <div className="container mx-auto px-4 py-24 relative">
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent">
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-linear-to-r from-foreground via-primary to-accent bg-clip-text text-transparent">
               Brands
             </h1>
             <p className="text-xl text-muted-foreground dark:text-slate-300 leading-relaxed">
@@ -44,8 +46,8 @@ export default async function BrandsModern() {
                 <div key={brand._id}>
                   <Link href={`/brands/${brand._id}`}>
                   <div className="group relative bg-card dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-border dark:border-slate-700 overflow-hidden hover:shadow-2xl hover:border-primary/50 transition-all duration-300 h-full">
-                    <div className="relative h-48 overflow-hidden bg-gradient-to-br from-secondary to-accent/10">
-                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent z-10" />
+                    <div className="relative h-48 overflow-hidden bg-linear-to-br from-secondary to-accent/10">
+                      <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent z-10" />
                       {brand.image ? (
                         <Image
                           src={brand.image}
@@ -77,7 +79,7 @@ export default async function BrandsModern() {
                       </div>
                     </div>
                     
-                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-linear-to-tr from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
                 </Link>
                 </div>

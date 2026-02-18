@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/lib/env";
 import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -18,7 +19,8 @@ export const authOptions: AuthOptions = {
         },
       },
       async authorize(credentials) {
-        const response = await fetch(`${process.env.Base_Url}/auth/signin`, {
+        const signInUrl = API_ENDPOINTS.signIn();
+        const response = await fetch(signInUrl, {
           method: "POST",
           body: JSON.stringify({
             email: credentials?.email,

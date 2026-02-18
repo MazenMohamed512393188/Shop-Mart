@@ -2,6 +2,7 @@ import WishList from "@/components/WishList/WishList";
 import React, { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/actions/authOptions";
+import { API_ENDPOINTS } from "@/lib/env";
 
 function WishlistSkeleton() {
   return (
@@ -30,6 +31,7 @@ function WishlistSkeleton() {
 
 async function WishlistData() {
   const session = await getServerSession(authOptions);
+  const wishlistUrl = API_ENDPOINTS.wishlist();
 
   if (!session) {
     return (
@@ -50,7 +52,7 @@ async function WishlistData() {
     );
   }
 
-  const response = await fetch(`${process.env.Base_Url}/wishlist`, {
+  const response = await fetch(wishlistUrl, {
     headers: {
       token: session?.token as string,
       "content-type": "application/json",

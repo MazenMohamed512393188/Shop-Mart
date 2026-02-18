@@ -12,6 +12,7 @@ import AddToCart from "@/components/AddToCart/AddToCart";
 import AddToWishlist from "@/components/AddToWishlist/AddToWishlist";
 import { Suspense } from "react";
 import { ProductsApiResponse } from "@/interfaces/productInterface";
+import { API_ENDPOINTS } from "@/lib/env";
 
 const formatCurrency = (amount: number, currency = "EGP", locale = "en-US") => {
   return new Intl.NumberFormat(locale, {
@@ -25,12 +26,10 @@ interface Params {
 }
 
 async function CategoryInfo({ categoryId }: { categoryId: string }) {
-  const response = await fetch(
-    `${process.env.Base_Url}/categories/${categoryId}`,
-    {
-      next: { revalidate: 60 },
-    },
-  );
+  const categoryUrl = API_ENDPOINTS.categoryDetails(categoryId);
+  const response = await fetch(categoryUrl, {
+    next: { revalidate: 60 },
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch category details");
@@ -90,8 +89,9 @@ async function CategoryInfo({ categoryId }: { categoryId: string }) {
 }
 
 async function CategoryProducts({ categoryId }: { categoryId: string }) {
+    const CategoryProducts = API_ENDPOINTS.CategoryProducts(categoryId);
   const response = await fetch(
-    `${process.env.Base_Url}/products?category=${categoryId}`,
+    CategoryProducts,
     { next: { revalidate: 60 } },
   );
 

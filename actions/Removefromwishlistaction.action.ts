@@ -1,10 +1,12 @@
 "use server";
+import { API_ENDPOINTS } from "@/lib/env";
 import { authOptions } from "./authOptions";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 
 export async function removeFromWishlistAction(productId: string) {
   const session = await getServerSession(authOptions);
+  const removeFromWishlistUrl = API_ENDPOINTS.removeFromWishlist(productId);
 
   // ✅ Session validation
   if (!session?.token) {
@@ -18,7 +20,7 @@ export async function removeFromWishlistAction(productId: string) {
   }
 
   try {
-    const res = await fetch(`${process.env.Base_Url}/wishlist/${productId}`, {
+    const res = await fetch(removeFromWishlistUrl, {
       method: "DELETE",
       headers: {
         token: session.token as string,

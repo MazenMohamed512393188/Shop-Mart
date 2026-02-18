@@ -9,15 +9,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/actions/authOptions";
 import DarkModeToggle from "../DarkModeToggle/DarkModeToggle";
 import NavbarClient from "./NavbarClient";
+import { API_ENDPOINTS } from "@/lib/env";
 
 export default async function Navbar() {
   const session = await getServerSession(authOptions);
+  const cartUrl = API_ENDPOINTS.cart();
 
   // Fetch cart data only if session exists
   let cartItemsCount = 0;
   if (session?.token) {
     try {
-      const response = await fetch(`${process.env.Base_Url}/cart`, {
+      const response = await fetch(cartUrl, {
         method: "GET",
         headers: {
           token: session.token as string,

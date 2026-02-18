@@ -1,13 +1,16 @@
 "use server";
 
+import { API_ENDPOINTS } from "@/lib/env";
+
 // Step 1: Send Code
 export async function sendResetCode(email: string) {
+  const forgotPasswordsUrl = API_ENDPOINTS.forgotPasswords();
   try {
     if (!email || !email.includes('@')) {
       throw new Error("Please enter a valid email address");
     }
 
-    const res = await fetch(`${process.env.Base_Url}/auth/forgotPasswords`, {
+    const res = await fetch(forgotPasswordsUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -38,12 +41,13 @@ export async function sendResetCode(email: string) {
 
 // Step 2: Verify Code
 export async function verifyResetCode(code: string) {
+  const verifyResetCodeUrl = API_ENDPOINTS.verifyResetCode();
   try {
     if (!code || code.length < 4) {
       throw new Error("Please enter a valid code");
     }
 
-    const res = await fetch(`${process.env.Base_Url}/auth/verifyResetCode`, {
+    const res = await fetch(verifyResetCodeUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ resetCode: code }),
@@ -72,12 +76,13 @@ export async function verifyResetCode(code: string) {
 }
 
 export async function resetPassword(email: string, password: string) {
+  const resetPasswordUrl = API_ENDPOINTS.resetPassword();
   try {
     if (!email || !password) {
       throw new Error("Email and password are required");
     }
 
-    const res = await fetch(`${process.env.Base_Url}/auth/resetPassword`, {
+    const res = await fetch(resetPasswordUrl, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, newPassword: password }),

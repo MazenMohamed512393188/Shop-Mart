@@ -6,10 +6,13 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Package, CheckCircle, Clock, Truck, MapPin, Calendar, CreditCard, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { API_ENDPOINTS } from "@/lib/env";
 
 export const revalidate = 60;
 
 export default async function AllOrdersModern() {
+  const cartUrl = API_ENDPOINTS.cart();
+  const getUser = API_ENDPOINTS.getUser();
   const session = await getServerSession(authOptions);
 
   if (!session?.token) {
@@ -20,7 +23,7 @@ export default async function AllOrdersModern() {
     let userId = null;
     
     try {
-      const cartResponse = await fetch(`${process.env.Base_Url}/cart`, {
+      const cartResponse = await fetch(cartUrl, {
         headers: {
           token: session.token as string,
           "content-type": "application/json",
@@ -38,7 +41,7 @@ export default async function AllOrdersModern() {
 
     if (!userId) {
       try {
-        const userResponse = await fetch(`${process.env.Base_Url}/users/getMe`, {
+        const userResponse = await fetch(getUser, {
           headers: {
             token: session.token as string,
             "content-type": "application/json",
@@ -69,9 +72,9 @@ export default async function AllOrdersModern() {
         </div>
       );
     }
-
+    const ordersUrl = API_ENDPOINTS.orders(userId);
     const ordersResponse = await fetch(
-      `${process.env.Base_Url}/orders/user/${userId}`,
+     ordersUrl,
       {
         headers: {
           token: session.token as string,

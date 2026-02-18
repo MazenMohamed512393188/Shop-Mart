@@ -1,5 +1,6 @@
 "use server";
 
+import { API_ENDPOINTS } from "@/lib/env";
 import { RegisterFormData } from "@/Schema/registerSchema";
 
 export interface RegisterResponse {
@@ -9,8 +10,9 @@ export interface RegisterResponse {
 }
 
 export async function sendRegisterRequest(data: RegisterFormData): Promise<RegisterResponse> {
+  const signUpUrl = API_ENDPOINTS.signUp();
   try {
-    const res = await fetch(`${process.env.Base_Url}/auth/signup`, {
+    const res = await fetch(signUpUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
