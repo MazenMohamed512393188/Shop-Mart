@@ -14,7 +14,7 @@ export async function checkOutAction(cartId : string , details : string , city :
         city,
         phone
     }
-    const response = await fetch(`${onlinePaymentUrl}/${cartId}?url=${process.env.LOCALHOST}`, {
+    const response = await fetch(`${onlinePaymentUrl}/${cartId}?url=${process.env.NEXTAUTH_URL}`, {
         method: "POST",
         headers: {
             token: session?.token as string,
