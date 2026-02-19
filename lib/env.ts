@@ -14,26 +14,30 @@
  */
 
 function getEnvVar(key: string, fallback?: string): string {
-  // Try to get from environment
   const value = process.env[key];
 
   if (value !== undefined && value !== "") {
     return value;
   }
 
-  // Use fallback if provided
   if (fallback !== undefined) {
     return fallback;
   }
 
-  // Throw error if required variable is missing
-  throw new Error(
-    `Missing required environment variable: ${key}\n\n` +
+  // في السيرفر فقط نرمي خطأ (لأن المتغيرات مطلوبة)
+  if (typeof window === "undefined") {
+    throw new Error(
+      `Missing required environment variable: ${key}\n\n` +
       `Please add it to:\n` +
       `- Local development: .env.local file\n` +
       `- Production: Your hosting platform (Vercel/Netlify) dashboard\n\n` +
       `Example: ${key}=https://your-api-url.com`,
-  );
+    );
+  }
+
+  // في العميل، نكتفي بتحذير ونرجع سلسلة فارغة
+  console.warn(`Environment variable ${key} is not defined in client. Using empty string.`);
+  return "";
 }
 
 function validateUrl(url: string, varName: string): string {
@@ -51,36 +55,27 @@ function validateUrl(url: string, varName: string): string {
 
 // Export typed and validated environment variables
 export const env = {
-  /**
-   * API Base URL - Used for all API requests
-   * Must be set in production!
-   */
-  API_URL: validateUrl(
-    getEnvVar("NEXT_PUBLIC_BASE_URL"),
-    "NEXT_PUBLIC_BASE_URL",
-  ),
+  API_URL: (() => {
+    if (typeof window === "undefined") {
+      // server: نتحقق بدقة
+      return validateUrl(getEnvVar("NEXT_PUBLIC_BASE_URL"), "NEXT_PUBLIC_BASE_URL");
+    } else {
+      // client: نستخدم القيمة المحقونة أو fallback ثابت
+      const url = process.env.NEXT_PUBLIC_BASE_URL;
+      if (!url) {
+        console.warn("NEXT_PUBLIC_BASE_URL missing in client, using fallback");
+        return "https://ecommerce.routemisr.com/api/v1"; // ضع الرابط المناسب
+      }
+      return validateUrl(url, "NEXT_PUBLIC_BASE_URL");
+    }
+  })(),
 
-  /**
-   * NextAuth Configuration
-   */
+  // باقي المتغيرات بنفس الطريقة (إذا كنت تريد حماية NEXTAUTH_URL أيضاً)
   NEXTAUTH_SECRET: getEnvVar("NEXTAUTH_SECRET"),
-
-  /**
-   * App URL (used for OAuth callbacks, etc.)
-   */
-  NEXTAUTH_URL: getEnvVar(
-    "NEXTAUTH_URL",
-    typeof window === "undefined"
-      ? "http://localhost:3000"
-      : window.location.origin,
+  NEXTAUTH_URL: getEnvVar("NEXTAUTH_URL", 
+    typeof window === "undefined" ? "http://localhost:3000" : window.location.origin
   ),
-
-  /**
-   * Environment detection
-   */
-  isDevelopment: process.env.NODE_ENV === "development",
-  isProduction: process.env.NODE_ENV === "production",
-  isTest: process.env.NODE_ENV === "test",
+  // ...
 } as const;
 
 // Validate all required variables on module load
