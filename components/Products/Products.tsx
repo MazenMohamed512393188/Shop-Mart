@@ -67,7 +67,7 @@ const ErrorState = ({ onRetry, message }: { onRetry: () => void; message?: strin
         <p className="text-muted-foreground text-sm md:text-base">
           {message || "We couldn't load the products. Please check your internet connection and try again."}
         </p>
-        {env.isDevelopment && (
+        {env && (
           <details className="mt-4 text-left text-xs text-muted-foreground bg-muted p-3 rounded">
             <summary className="cursor-pointer font-medium">Developer Info</summary>
             <div className="mt-2 space-y-1">
